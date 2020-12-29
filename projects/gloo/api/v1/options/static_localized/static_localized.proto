@@ -1,0 +1,83 @@
+syntax = "proto3";
+package static_localized.options.gloo.solo.io;
+
+option go_package = "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/options/static_localized";
+
+import "extproto/ext.proto";
+option (extproto.equal_all) = true;
+option (extproto.hash_all) = true;
+
+import "google/protobuf/wrappers.proto";
+import "github.com/solo-io/gloo/projects/gloo/api/v1/options/service_spec.proto";
+
+// Static localized upstreams are identical to static upstreams except that hosts can be configured
+//  with a locality that is used for load balancing requests
+//
+// Similar to static upstreams, static localized upstreams:
+//  - are used to route request to services listening at fixed IP/Host & Port pairs.
+//  - can be used to proxy any kind of service, and therefore contain a ServiceSpec for additional service-specific configuration.
+//  - must be created manually by users
+message UpstreamSpec {
+    // A list of addresses and ports, separated by locality
+    // at least one must be specified
+    repeated LocalizedHosts localized_hosts = 1;
+
+    // Attempt to use outbound TLS
+    // Gloo will automatically set this to true for port 443
+    bool use_tls = 3;
+
+    // An optional Service Spec describing the service listening at this address
+    .options.gloo.solo.io.ServiceSpec service_spec = 5;
+
+    // When set, automatically set the sni address to use to the addr field.
+    // If both this and host.sni_addr are set, host.sni_addr has priority.
+    // defaults to "true".
+    google.protobuf.BoolValue auto_sni_rewrite = 6;
+}
+
+// Represents a set of instances of an upstream, running in a particular locality
+message LocalizedHosts {
+    // Identifies where the hosts run.
+    Locality locality = 1;
+
+    // A list of addresses and ports
+    // at least one must be specified
+    repeated Host hosts = 2;
+}
+
+// Represents a single instance of an upstream
+message Host {
+    // Address (hostname or IP)
+    string addr = 1;
+    // Port the instance is listening on
+    uint32 port = 2;
+
+    // Address to use for SNI if using ssl.
+    string sni_addr = 4;
+
+    message HealthCheckConfig {
+        // (Enterprise Only): Path to use when health checking this specific host.
+        string path = 1;
+    }
+
+    // (Enterprise Only): Host specific health checking configuration.
+    HealthCheckConfig health_check_config = 3;
+}
+
+// Identifies location of where either Envoy runs or where upstream hosts run.
+message Locality {
+    // Region this zone belongs to.
+    string region = 1;
+
+    // Defines the local service zone where Envoy is running. The meaning of zone
+    // is context dependent, e.g. `Availability Zone (AZ)
+    // <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html>`_
+    // on AWS, `Zone <https://cloud.google.com/compute/docs/regions-zones/>`_ on
+    // GCP, etc.
+    string zone = 2;
+
+    // When used for locality of upstream hosts, this field further splits zone
+    // into smaller chunks of sub-zones so they can be load balanced
+    // independently.
+    string sub_zone = 3;
+}
