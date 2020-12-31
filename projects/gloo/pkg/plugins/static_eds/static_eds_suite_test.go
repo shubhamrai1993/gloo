@@ -1,4 +1,4 @@
-package static_localized_test
+package static_eds_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestStatic(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Static_Localized Suite")
+	RunSpecs(t, "Static_Eds Suite")
 }

@@ -31,7 +31,7 @@ import (
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins/rest"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins/shadowing"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins/static"
-	"github.com/solo-io/gloo/projects/gloo/pkg/plugins/static_localized"
+	"github.com/solo-io/gloo/projects/gloo/pkg/plugins/static_eds"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins/stats"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins/tcp"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins/tracing"
@@ -62,7 +62,7 @@ var globalRegistry = func(opts bootstrap.Opts, pluginExtensions ...func() plugin
 		pipe.NewPlugin(),
 		tcp.NewPlugin(utils.NewSslConfigTranslator()),
 		static.NewPlugin(),
-		static_localized.NewPlugin(&static_localized.StaticLocalizedDnsResolver{}),
+		static_eds.NewPlugin(&static_eds.StaticLocalizedDnsResolver{}),
 		transformationPlugin,
 		grpcweb.NewPlugin(),
 		grpc.NewPlugin(&transformationPlugin.RequireTransformationFilter),

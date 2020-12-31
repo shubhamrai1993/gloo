@@ -1,4 +1,4 @@
-package static_localized
+package static_eds
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/rotisserie/eris"
 )
 
-//go:generate mockgen -destination ./mocks/dnsresolver_mock.go github.com/solo-io/gloo/projects/gloo/pkg/plugins/static_localized DnsResolver
+//go:generate mockgen -destination ./mocks/dnsresolver_mock.go github.com/solo-io/gloo/projects/gloo/pkg/plugins/static_eds DnsResolver
 //go:generate gofmt -w ./mocks/
 //go:generate goimports -w ./mocks/
 
@@ -15,10 +15,10 @@ type DnsResolver interface {
 	Resolve(ctx context.Context, address string) ([]net.IPAddr, error)
 }
 
-type StaticLocalizedDnsResolver struct {
+type StaticEdsDnsResolver struct {
 }
 
-func (c *StaticLocalizedDnsResolver) Resolve(ctx context.Context, address string) ([]net.IPAddr, error) {
+func (c *StaticEdsDnsResolver) Resolve(ctx context.Context, address string) ([]net.IPAddr, error) {
 	res := net.Resolver{
 		PreferGo: true, // otherwise we may use cgo which doesn't resolve on my mac in testing
 		Dial: func(ctx context.Context, network, address string) (conn net.Conn, err error) {
@@ -32,7 +32,7 @@ func (c *StaticLocalizedDnsResolver) Resolve(ctx context.Context, address string
 		return nil, err
 	}
 	if len(ipAddrs) == 0 {
-		return nil, eris.Errorf("Static localized spec contained a host address that couldn't be parsed as an IP (%s), "+
+		return nil, eris.Errorf("Static eds spec contained a host address that couldn't be parsed as an IP (%s), "+
 			"could not resolve as a hostname", address)
 	}
 	return ipAddrs, nil

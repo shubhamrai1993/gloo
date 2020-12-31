@@ -17,7 +17,7 @@ import "github.com/solo-io/solo-kit/api/v1/status.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/external/envoy/api/v2/cluster/outlier_detection.proto";
 import "github.com/solo-io/solo-kit/api/v1/solo-kit.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/static/static.proto";
-import "github.com/solo-io/gloo/projects/gloo/api/v1/options/static_localized/static_localized.proto";
+import "github.com/solo-io/gloo/projects/gloo/api/v1/options/static_eds/static_eds.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/pipe/pipe.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/kubernetes/kubernetes.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/aws/aws.proto";
@@ -72,7 +72,7 @@ message Upstream {
     oneof upstream_type {
         kubernetes.options.gloo.solo.io.UpstreamSpec kube = 11;
         static.options.gloo.solo.io.UpstreamSpec static = 12;
-        static_localized.options.gloo.solo.io.UpstreamSpec static_localized = 21;
+        static_eds.options.gloo.solo.io.UpstreamSpec static_eds = 21;
         pipe.options.gloo.solo.io.UpstreamSpec pipe = 13;
         aws.options.gloo.solo.io.UpstreamSpec aws = 14;
         azure.options.gloo.solo.io.UpstreamSpec azure = 15;

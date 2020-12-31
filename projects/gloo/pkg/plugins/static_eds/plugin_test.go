@@ -1,4 +1,4 @@
-package static_localized
+package static_eds
 
 import (
 	. "github.com/onsi/ginkgo"

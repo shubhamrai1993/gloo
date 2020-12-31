@@ -1,7 +1,7 @@
 syntax = "proto3";
-package static_localized.options.gloo.solo.io;
+package static_eds.options.gloo.solo.io;
 
-option go_package = "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/options/static_localized";
+option go_package = "github.com/solo-io/gloo/projects/gloo/pkg/api/v1/options/static_eds";
 
 import "extproto/ext.proto";
 option (extproto.equal_all) = true;
@@ -10,17 +10,17 @@ option (extproto.hash_all) = true;
 import "google/protobuf/wrappers.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/service_spec.proto";
 
-// Static localized upstreams are identical to static upstreams except that hosts can be configured
-//  with a locality that is used for load balancing requests
+// Static eds upstreams are identical to static upstreams except that the clusters will receive their
+//  configuration via EDS.
 //
-// Similar to static upstreams, static localized upstreams:
+// Similar to static upstreams, static eds upstreams:
 //  - are used to route request to services listening at fixed IP/Host & Port pairs.
 //  - can be used to proxy any kind of service, and therefore contain a ServiceSpec for additional service-specific configuration.
 //  - must be created manually by users
 message UpstreamSpec {
     // A list of addresses and ports, separated by locality
     // at least one must be specified
-    repeated LocalizedHosts localized_hosts = 1;
+    repeated LocalityLbEndpoints locality_endpoints = 1;
 
     // Attempt to use outbound TLS
     // Gloo will automatically set this to true for port 443
@@ -35,18 +35,23 @@ message UpstreamSpec {
     google.protobuf.BoolValue auto_sni_rewrite = 6;
 }
 
-// Represents a set of instances of an upstream, running in a particular locality
-message LocalizedHosts {
+// A group of endpoints belonging to a Locality.
+message LocalityLbEndpoints {
     // Identifies where the hosts run.
     Locality locality = 1;
 
-    // A list of addresses and ports
-    // at least one must be specified
-    repeated Host hosts = 2;
+    // The group of endpoints belonging to the locality specified.
+    repeated LbEndpoint lb_endpoints = 2;
+
+    // Optional: Per priority/region/zone/sub_zone weight; at least 1. The load
+    // balancing weight for a locality is divided by the sum of the weights of all
+    // localities at the same priority level to produce the effective percentage
+    // of traffic for the locality.
+    google.protobuf.UInt32Value load_balancing_weight = 3;
 }
 
-// Represents a single instance of an upstream
-message Host {
+// An Endpoint that Envoy can route traffic to.
+message LbEndpoint {
     // Address (hostname or IP)
     string addr = 1;
     // Port the instance is listening on

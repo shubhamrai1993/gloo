@@ -209,14 +209,14 @@ func (m *Upstream) Equal(that interface{}) bool {
 			}
 		}
 
-	case *Upstream_StaticLocalized:
+	case *Upstream_StaticEds:
 
-		if h, ok := interface{}(m.GetStaticLocalized()).(equality.Equalizer); ok {
-			if !h.Equal(target.GetStaticLocalized()) {
+		if h, ok := interface{}(m.GetStaticEds()).(equality.Equalizer); ok {
+			if !h.Equal(target.GetStaticEds()) {
 				return false
 			}
 		} else {
-			if !proto.Equal(m.GetStaticLocalized(), target.GetStaticLocalized()) {
+			if !proto.Equal(m.GetStaticEds(), target.GetStaticEds()) {
 				return false
 			}
 		}

@@ -1229,18 +1229,18 @@ apis:
   static.options.gloo.solo.io.UpstreamSpec:
     relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/static/static.proto.sk/#UpstreamSpec
     package: static.options.gloo.solo.io
-  static_localized.options.gloo.solo.io.Host:
-    relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/static_localized/static_localized.proto.sk/#Host
-    package: static_localized.options.gloo.solo.io
-  static_localized.options.gloo.solo.io.Locality:
-    relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/static_localized/static_localized.proto.sk/#Locality
-    package: static_localized.options.gloo.solo.io
-  static_localized.options.gloo.solo.io.LocalizedHosts:
-    relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/static_localized/static_localized.proto.sk/#LocalizedHosts
-    package: static_localized.options.gloo.solo.io
-  static_localized.options.gloo.solo.io.UpstreamSpec:
-    relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/static_localized/static_localized.proto.sk/#UpstreamSpec
-    package: static_localized.options.gloo.solo.io
+  static_eds.options.gloo.solo.io.LbEndpoint:
+    relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/static_eds/static_eds.proto.sk/#LbEndpoint
+    package: static_eds.options.gloo.solo.io
+  static_eds.options.gloo.solo.io.Locality:
+    relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/static_eds/static_eds.proto.sk/#Locality
+    package: static_eds.options.gloo.solo.io
+  static_eds.options.gloo.solo.io.LocalityLbEndpoints:
+    relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/static_eds/static_eds.proto.sk/#LocalityLbEndpoints
+    package: static_eds.options.gloo.solo.io
+  static_eds.options.gloo.solo.io.UpstreamSpec:
+    relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/static_eds/static_eds.proto.sk/#UpstreamSpec
+    package: static_eds.options.gloo.solo.io
   stats.options.gloo.solo.io.Stats:
     relativepath: reference/api/github.com/solo-io/gloo/projects/gloo/api/v1/options/stats/stats.proto.sk/#Stats
     package: stats.options.gloo.solo.io
