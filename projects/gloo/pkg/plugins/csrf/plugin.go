@@ -106,13 +106,18 @@ func translateCsrfConfig(csrf *csrf.CsrfPolicy) (*envoycsrf.CsrfPolicy, error) {
 	if csrf.GetFilterEnabled() != nil {
 		csrfPolicy := &envoycsrf.CsrfPolicy{
 			FilterEnabled:     translateFilterEnabled(csrf.GetFilterEnabled()),
+			ShadowEnabled: &envoy_config_core.RuntimeFractionalPercent{
+				DefaultValue: &envoytype.FractionalPercent{},
+			},
 			AdditionalOrigins: translateAdditionalOrigins(csrf.GetAdditionalOrigins()),
 		}
 
 		return csrfPolicy, csrfPolicy.Validate()
 	} else if csrf.GetShadowEnabled() != nil {
 		csrfPolicy := &envoycsrf.CsrfPolicy{
-			FilterEnabled:     translateFilterEnabled(csrf.GetFilterEnabled()),
+			FilterEnabled: &envoy_config_core.RuntimeFractionalPercent{
+				DefaultValue: &envoytype.FractionalPercent{},
+			},
 			ShadowEnabled:     translateShadowEnabled(csrf.GetShadowEnabled()),
 			AdditionalOrigins: translateAdditionalOrigins(csrf.GetAdditionalOrigins()),
 		}

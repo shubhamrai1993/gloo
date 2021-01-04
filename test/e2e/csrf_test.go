@@ -34,7 +34,7 @@ const (
 	unAllowedOriginRegex = "doNot.allowThisOne.solo.io"
 )
 
-var _ = Describe("CSRF", func() {
+var _ = FDescribe("CSRF", func() {
 
 	var (
 		err           error
@@ -274,6 +274,76 @@ var _ = Describe("CSRF", func() {
 				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_invalid: 1"))
 				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_valid: 0"))
 			})
+		})
+
+		FContext("switch from enabled to shadow mode", func() {
+
+			JustBeforeEach(func() {
+				gatewayClient := testClients.GatewayClient
+				gw, err := gatewayClient.Read(writeNamespace, gatewaydefaults.GatewayProxyName, clients.ReadOpts{})
+				Expect(err).NotTo(HaveOccurred())
+
+				// build a csrf policy
+				csrfPolicy := getCsrfPolicyWithAllowedRegex(allowedOriginRegex)
+
+				// update the listener to include the csrf policy
+				httpGateway := gw.GetHttpGateway()
+				httpGateway.Options = &gloov1.HttpListenerOptions{
+					Csrf: csrfPolicy,
+				}
+				_, err = gatewayClient.Write(gw, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
+				Expect(err).NotTo(HaveOccurred())
+
+				// write a virtual service so we have a proxy to our test upstream
+				testVs := getTrivialVirtualServiceForUpstream(writeNamespace, up.Metadata.Ref())
+				_, err = testClients.VirtualServiceClient.Write(testVs, clients.WriteOpts{})
+				Expect(err).NotTo(HaveOccurred())
+
+				checkProxy()
+				checkVirtualService(testVs)
+			})
+
+			It("Block on enabled, allow in shadow mode", func() {
+
+				spoofedRequestEnabled := buildRequestFromOrigin(allowedOriginRegex, false)
+				Eventually(spoofedRequestEnabled, 10*time.Second, 1*time.Second).Should(BeEmpty())
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_invalid: 0"))
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_valid: 1"))
+
+
+				spoofedRequestEnabledInvalid := buildRequestFromOrigin(unAllowedOriginRegex, false)
+				Eventually(spoofedRequestEnabledInvalid, 10*time.Second, 1*time.Second).Should(Equal("Invalid origin"))
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_invalid: 1"))
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_valid: 1"))
+
+				gatewayClient := testClients.GatewayClient
+				gw, err := gatewayClient.Read(writeNamespace, gatewaydefaults.GatewayProxyName, clients.ReadOpts{})
+				Expect(err).NotTo(HaveOccurred())
+
+				// build a csrf policy
+				csrfPolicy := getCsrfPolicyWithShadowEnabled(allowedOriginRegex)
+
+				// update the listener to include the csrf policy
+				httpGateway := gw.GetHttpGateway()
+				httpGateway.Options = &gloov1.HttpListenerOptions{
+					Csrf: csrfPolicy,
+				}
+				_, err = gatewayClient.Write(gw, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
+				Expect(err).NotTo(HaveOccurred())
+
+				checkProxy()
+
+				spoofedRequestShadow := buildRequestFromOrigin(allowedOriginRegex, false)
+				Eventually(spoofedRequestShadow, 10*time.Second, 1*time.Second).Should(BeEmpty())
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_invalid: 1"))
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_valid: 2"))
+
+				spoofedRequestShadowInvalid := buildRequestFromOrigin(unAllowedOriginRegex, false)
+				Eventually(spoofedRequestShadowInvalid, 10*time.Second, 1*time.Second).Should(BeEmpty())
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_invalid: 2"))
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_valid: 2"))
+			})
+
 		})
 
 	})
