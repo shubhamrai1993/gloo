@@ -191,7 +191,7 @@ var _ = Describe("CSRF", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				// build a csrf policy
-				csrfPolicy := getCsrfPolicyWithFilterEnabled()
+				csrfPolicy := getCsrfPolicyWithFilterEnabled(allowedOrigin)
 
 				// update the listener to include the csrf policy
 				httpGateway := gw.GetHttpGateway()
@@ -237,7 +237,7 @@ var _ = Describe("CSRF", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				// build a csrf policy
-				csrfPolicy := getCsrfPolicyWithShadowEnabled()
+				csrfPolicy := getCsrfPolicyWithShadowEnabled(allowedOrigin)
 
 				// update the listener to include the csrf policy
 				httpGateway := gw.GetHttpGateway()
@@ -281,7 +281,7 @@ var _ = Describe("CSRF", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				// build a csrf policy
-				csrfPolicy := getCsrfPolicyWithFilterEnabled()
+				csrfPolicy := getCsrfPolicyWithFilterEnabled(allowedOrigin)
 
 				// update the listener to include the csrf policy
 				httpGateway := gw.GetHttpGateway()
@@ -316,7 +316,7 @@ var _ = Describe("CSRF", func() {
 				Expect(statistics).To(matchValidRequestEqualTo(1))
 
 				// build a csrf policy
-				csrfPolicy := getCsrfPolicyWithShadowEnabled()
+				csrfPolicy := getCsrfPolicyWithShadowEnabled(allowedOrigin)
 
 				p := checkProxy()
 				l := getNonSSLListener(p)
@@ -374,7 +374,7 @@ var _ = Describe("CSRF", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				// build a csrf policy
-				csrfPolicy := getCsrfPolicyWithShadowEnabled()
+				csrfPolicy := getCsrfPolicyWithShadowEnabled(allowedOrigin)
 
 				// update the listener to include the csrf policy
 				httpGateway := gw.GetHttpGateway()
@@ -409,7 +409,7 @@ var _ = Describe("CSRF", func() {
 				Expect(statistics).To(matchValidRequestEqualTo(1))
 
 				// build a csrf policy
-				csrfPolicy := getCsrfPolicyWithFilterEnabled()
+				csrfPolicy := getCsrfPolicyWithFilterEnabled(allowedOrigin)
 
 				p := checkProxy()
 				l := getNonSSLListener(p)
@@ -464,7 +464,7 @@ var _ = Describe("CSRF", func() {
 		JustBeforeEach(func() {
 
 			// build a csrf policy
-			csrfPolicy := getCsrfPolicyWithFilterEnabled()
+			csrfPolicy := getCsrfPolicyWithFilterEnabled(allowedOrigin)
 
 			// write a virtual service so we have a proxy to our test upstream
 			vhClient := testClients.VirtualServiceClient
@@ -504,7 +504,7 @@ var _ = Describe("CSRF", func() {
 		JustBeforeEach(func() {
 
 			// build a csrf policy
-			csrfPolicy := getCsrfPolicyWithFilterEnabled()
+			csrfPolicy := getCsrfPolicyWithFilterEnabled(allowedOrigin)
 
 			// write a virtual service so we have a proxy to our test upstream
 			vhClient := testClients.VirtualServiceClient
@@ -542,7 +542,7 @@ var _ = Describe("CSRF", func() {
 		JustBeforeEach(func() {
 
 			// build a csrf policy
-			csrfPolicy := getCsrfPolicyWithFilterEnabled()
+			csrfPolicy := getCsrfPolicyWithFilterEnabled(allowedOrigin)
 
 			// write a virtual service so we have a proxy to our test upstream
 			vhClient := testClients.VirtualServiceClient
@@ -590,7 +590,7 @@ var _ = Describe("CSRF", func() {
 			// update the listener to include the csrf policy
 			httpGateway := gw.GetHttpGateway()
 			httpGateway.Options = &gloov1.HttpListenerOptions{
-				Csrf: getCsrfPolicyWithFilterEnabled(), // TODO: add origin str
+				Csrf: getCsrfPolicyWithFilterEnabled(unAllowedOrigin), // TODO: add origin str
 			}
 			_, err = gatewayClient.Write(gw, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 			Expect(err).NotTo(HaveOccurred())
@@ -599,7 +599,7 @@ var _ = Describe("CSRF", func() {
 			vhClient := testClients.VirtualServiceClient
 			testVs := getTrivialVirtualServiceForUpstream(writeNamespace, up.Metadata.Ref())
 			testVs.VirtualHost.Options = &gloov1.VirtualHostOptions{
-				Csrf: getCsrfPolicyWithFilterEnabled(),
+				Csrf: getCsrfPolicyWithFilterEnabled(allowedOrigin),
 			}
 			_, err = vhClient.Write(testVs, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 			Expect(err).NotTo(HaveOccurred())
@@ -636,7 +636,7 @@ func matchInvalidRequestEqualTo(count int) types.GomegaMatcher {
 	return MatchRegexp("http.http.csrf.request_invalid: %d", count)
 }
 
-func getCsrfPolicyWithFilterEnabled() *csrf.CsrfPolicy {
+func getCsrfPolicyWithFilterEnabled(origin string) *csrf.CsrfPolicy {
 	return &csrf.CsrfPolicy{
 		FilterEnabled: &gloo_config_core.RuntimeFractionalPercent{
 			DefaultValue: &glootype.FractionalPercent{
@@ -650,14 +650,14 @@ func getCsrfPolicyWithFilterEnabled() *csrf.CsrfPolicy {
 					EngineType: &gloo_type_matcher.RegexMatcher_GoogleRe2{
 						GoogleRe2: &gloo_type_matcher.RegexMatcher_GoogleRE2{},
 					},
-					Regex: allowedOrigin,
+					Regex: origin,
 				},
 			},
 		}},
 	}
 }
 
-func getCsrfPolicyWithShadowEnabled() *csrf.CsrfPolicy {
+func getCsrfPolicyWithShadowEnabled(origin string) *csrf.CsrfPolicy {
 	return &csrf.CsrfPolicy{
 		ShadowEnabled: &gloo_config_core.RuntimeFractionalPercent{
 			DefaultValue: &glootype.FractionalPercent{
@@ -672,7 +672,7 @@ func getCsrfPolicyWithShadowEnabled() *csrf.CsrfPolicy {
 					EngineType: &gloo_type_matcher.RegexMatcher_GoogleRe2{
 						GoogleRe2: &gloo_type_matcher.RegexMatcher_GoogleRE2{},
 					},
-					Regex: allowedOrigin,
+					Regex: origin,
 				},
 			},
 		}},
