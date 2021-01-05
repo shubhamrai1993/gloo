@@ -590,7 +590,7 @@ var _ = Describe("CSRF", func() {
 			// update the listener to include the csrf policy
 			httpGateway := gw.GetHttpGateway()
 			httpGateway.Options = &gloov1.HttpListenerOptions{
-				Csrf: getCsrfPolicyWithFilterEnabled(),
+				Csrf: getCsrfPolicyWithFilterEnabled(), // TODO: add origin str
 			}
 			_, err = gatewayClient.Write(gw, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 			Expect(err).NotTo(HaveOccurred())

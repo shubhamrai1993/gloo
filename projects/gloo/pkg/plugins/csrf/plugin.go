@@ -115,10 +115,8 @@ func translateCsrfConfig(csrf *csrf.CsrfPolicy) (*envoycsrf.CsrfPolicy, error) {
 func translateFilterEnabled(glooFilterEnabled *v3.RuntimeFractionalPercent) *envoy_config_core.RuntimeFractionalPercent {
 	if glooFilterEnabled == nil {
 		return &envoy_config_core.RuntimeFractionalPercent{
-			DefaultValue: &envoytype.FractionalPercent{
-				// If we supply a nil DefaultValue here, envoy will replace that with 100%
-				Numerator: 0,
-			},
+			// If we supply a nil DefaultValue here, envoy will replace that with 100%
+			DefaultValue: &envoytype.FractionalPercent{},
 		}
 	}
 	return translateRuntimeFractionalPercent(glooFilterEnabled)
