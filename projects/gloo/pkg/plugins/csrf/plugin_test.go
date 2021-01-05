@@ -149,7 +149,7 @@ var _ = Describe("plugin", func() {
 					ConfigType: &envoyhcm.HttpFilter_TypedConfig{
 						TypedConfig: utils.MustMessageToAny(&envoycsrf.CsrfPolicy{
 							FilterEnabled:     &envoyFilter,
-							ShadowEnabled: 	   &envoyFilter,
+							ShadowEnabled:     &envoyFilter,
 							AdditionalOrigins: envoyAdditionalOrigins,
 						}),
 					},
