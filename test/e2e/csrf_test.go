@@ -40,7 +40,7 @@ var (
 	validOriginResponseMatcher   = BeEmpty()
 )
 
-var _ = FDescribe("CSRF", func() {
+var _ = Describe("CSRF", func() {
 
 	var (
 		err           error
