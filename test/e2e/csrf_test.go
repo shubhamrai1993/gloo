@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/onsi/gomega/types"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/onsi/gomega/types"
 
 	gatewayv1 "github.com/solo-io/gloo/projects/gateway/pkg/api/v1"
 	gatewaydefaults "github.com/solo-io/gloo/projects/gateway/pkg/defaults"
