@@ -102,66 +102,41 @@ func (p *plugin) ProcessWeightedDestination(
 }
 
 func translateCsrfConfig(csrf *csrf.CsrfPolicy) (*envoycsrf.CsrfPolicy, error) {
-
-	if csrf.GetFilterEnabled() != nil {
-		csrfPolicy := &envoycsrf.CsrfPolicy{
-			FilterEnabled:     translateFilterEnabled(csrf.GetFilterEnabled()),
-			ShadowEnabled: &envoy_config_core.RuntimeFractionalPercent{
-				DefaultValue: &envoytype.FractionalPercent{},
-			},
-			AdditionalOrigins: translateAdditionalOrigins(csrf.GetAdditionalOrigins()),
-		}
-
-		return csrfPolicy, csrfPolicy.Validate()
-	} else if csrf.GetShadowEnabled() != nil {
-		csrfPolicy := &envoycsrf.CsrfPolicy{
-			FilterEnabled: &envoy_config_core.RuntimeFractionalPercent{
-				DefaultValue: &envoytype.FractionalPercent{},
-			},
-			ShadowEnabled:     translateShadowEnabled(csrf.GetShadowEnabled()),
-			AdditionalOrigins: translateAdditionalOrigins(csrf.GetAdditionalOrigins()),
-		}
-
-		return csrfPolicy, csrfPolicy.Validate()
-	} else {
-		// if null config, return empty csrf policy with valid FilterEnabled
-		csrfPolicy := &envoycsrf.CsrfPolicy{
-			FilterEnabled: translateFilterEnabled(csrf.GetFilterEnabled()),
-		}
-
-		return csrfPolicy, csrfPolicy.Validate()
+	csrfPolicy := &envoycsrf.CsrfPolicy{
+		FilterEnabled:     translateFilterEnabled(csrf.GetFilterEnabled()),
+		ShadowEnabled:     translateShadowEnabled(csrf.GetShadowEnabled()),
+		AdditionalOrigins: translateAdditionalOrigins(csrf.GetAdditionalOrigins()),
 	}
+
+	return csrfPolicy, csrfPolicy.Validate()
 
 }
 
 func translateFilterEnabled(glooFilterEnabled *v3.RuntimeFractionalPercent) *envoy_config_core.RuntimeFractionalPercent {
 	if glooFilterEnabled == nil {
-		// validation requires empty FilterEnabled with DefaultValue
 		return &envoy_config_core.RuntimeFractionalPercent{
-			DefaultValue: &envoytype.FractionalPercent{},
+			// If we supply a nil DefaultValue here, envoy will replace that with 100%
 		}
 	}
-
-	return &envoy_config_core.RuntimeFractionalPercent{
-		DefaultValue: &envoytype.FractionalPercent{
-			Numerator:   glooFilterEnabled.GetDefaultValue().GetNumerator(),
-			Denominator: envoytype.FractionalPercent_DenominatorType(glooFilterEnabled.GetDefaultValue().GetDenominator()),
-		},
-		RuntimeKey: glooFilterEnabled.GetRuntimeKey(),
-	}
+	return translateRuntimeFractionalPercent(glooFilterEnabled)
 }
 
 func translateShadowEnabled(glooShadowEnabled *v3.RuntimeFractionalPercent) *envoy_config_core.RuntimeFractionalPercent {
 	if glooShadowEnabled == nil {
-		return nil
+		return &envoy_config_core.RuntimeFractionalPercent{
+			DefaultValue: &envoytype.FractionalPercent{},
+		}
 	}
+	return translateRuntimeFractionalPercent(glooShadowEnabled)
+}
 
+func translateRuntimeFractionalPercent(rfp *v3.RuntimeFractionalPercent) *envoy_config_core.RuntimeFractionalPercent {
 	return &envoy_config_core.RuntimeFractionalPercent{
 		DefaultValue: &envoytype.FractionalPercent{
-			Numerator:   glooShadowEnabled.GetDefaultValue().GetNumerator(),
-			Denominator: envoytype.FractionalPercent_DenominatorType(glooShadowEnabled.GetDefaultValue().GetDenominator()),
+			Numerator:   rfp.GetDefaultValue().GetNumerator(),
+			Denominator: envoytype.FractionalPercent_DenominatorType(rfp.GetDefaultValue().GetDenominator()),
 		},
-		RuntimeKey: glooShadowEnabled.GetRuntimeKey(),
+		RuntimeKey: rfp.GetRuntimeKey(),
 	}
 }
 
