@@ -41,7 +41,7 @@ var (
 	validOriginResponseMatcher   = BeEmpty()
 )
 
-var _ = Describe("CSRF", func() {
+var _ = FDescribe("CSRF", func() {
 
 	var (
 		err           error
@@ -300,7 +300,7 @@ var _ = Describe("CSRF", func() {
 				checkVirtualService(testVs)
 			})
 
-			It("Block on enabled, allow in shadow mode", func() {
+			FIt("Block on enabled, allow in shadow mode", func() {
 				request := buildRequestFromOrigin(allowedOrigin)
 				Eventually(request, 10*time.Second, 1*time.Second).Should(validOriginResponseMatcher)
 
@@ -350,6 +350,9 @@ var _ = Describe("CSRF", func() {
 						return shadowEnabledListeners, nil
 					}, "4s", "0.1s").Should(Equal(1))
 
+				p1 := checkProxy()
+				print(p1)
+
 				spoofedRequestShadow := buildRequestFromOrigin(allowedOrigin)
 				Eventually(spoofedRequestShadow, 10*time.Second, 1*time.Second).Should(validOriginResponseMatcher)
 				statisticsShadow := getEnvoyStats()
@@ -393,7 +396,7 @@ var _ = Describe("CSRF", func() {
 				checkVirtualService(testVs)
 			})
 
-			It("Block on enabled, allow in shadow mode", func() {
+			It("Allow in shadow mode, block on enabled", func() {
 				request := buildRequestFromOrigin(allowedOrigin)
 				Eventually(request, 10*time.Second, 1*time.Second).Should(validOriginResponseMatcher)
 
@@ -590,7 +593,7 @@ var _ = Describe("CSRF", func() {
 			// update the listener to include the csrf policy
 			httpGateway := gw.GetHttpGateway()
 			httpGateway.Options = &gloov1.HttpListenerOptions{
-				Csrf: getCsrfPolicyWithFilterEnabled(unAllowedOrigin), // TODO: add origin str
+				Csrf: getCsrfPolicyWithFilterEnabled(unAllowedOrigin),
 			}
 			_, err = gatewayClient.Write(gw, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 			Expect(err).NotTo(HaveOccurred())
@@ -665,7 +668,7 @@ func getCsrfPolicyWithShadowEnabled(origin string) *csrf.CsrfPolicy {
 				Denominator: glootype.FractionalPercent_HUNDRED,
 			},
 		},
-		FilterEnabled: &gloo_config_core.RuntimeFractionalPercent{},
+		//FilterEnabled: &gloo_config_core.RuntimeFractionalPercent{},
 		AdditionalOrigins: []*gloo_type_matcher.StringMatcher{{
 			MatchPattern: &gloo_type_matcher.StringMatcher_SafeRegex{
 				SafeRegex: &gloo_type_matcher.RegexMatcher{

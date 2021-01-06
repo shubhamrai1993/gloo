@@ -7,6 +7,7 @@ import (
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoytype "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/rotisserie/eris"
+	gloo_config_core "github.com/solo-io/gloo/projects/gloo/pkg/api/external/envoy/config/core/v3"
 	v3 "github.com/solo-io/gloo/projects/gloo/pkg/api/external/envoy/config/core/v3"
 	csrf "github.com/solo-io/gloo/projects/gloo/pkg/api/external/envoy/extensions/filters/http/csrf/v3"
 	gloo_type_matcher "github.com/solo-io/gloo/projects/gloo/pkg/api/external/envoy/type/matcher/v3"
@@ -114,10 +115,16 @@ func translateCsrfConfig(csrf *csrf.CsrfPolicy) (*envoycsrf.CsrfPolicy, error) {
 
 func translateFilterEnabled(glooFilterEnabled *v3.RuntimeFractionalPercent) *envoy_config_core.RuntimeFractionalPercent {
 	if glooFilterEnabled == nil {
-		return &envoy_config_core.RuntimeFractionalPercent{
-			// If we supply a nil DefaultValue here, envoy will replace that with 100%
-			DefaultValue: &envoytype.FractionalPercent{},
-		}
+		return translateRuntimeFractionalPercent(&gloo_config_core.RuntimeFractionalPercent{})
+
+		//return &envoy_config_core.RuntimeFractionalPercent{
+		//	// If we supply a nil DefaultValue here, envoy will replace that with 100%
+		//	DefaultValue: &envoytype.FractionalPercent{
+		//		//Numerator:   0,
+		//		//Denominator: envoytype.FractionalPercent_DenominatorType(0),
+		//	},
+		//	//RuntimeKey: "",
+		//}
 	}
 	return translateRuntimeFractionalPercent(glooFilterEnabled)
 }
