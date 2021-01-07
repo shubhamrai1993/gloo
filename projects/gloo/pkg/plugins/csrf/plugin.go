@@ -7,11 +7,9 @@ import (
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	envoytype "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/rotisserie/eris"
-	gloo_config_core "github.com/solo-io/gloo/projects/gloo/pkg/api/external/envoy/config/core/v3"
 	v3 "github.com/solo-io/gloo/projects/gloo/pkg/api/external/envoy/config/core/v3"
 	csrf "github.com/solo-io/gloo/projects/gloo/pkg/api/external/envoy/extensions/filters/http/csrf/v3"
 	gloo_type_matcher "github.com/solo-io/gloo/projects/gloo/pkg/api/external/envoy/type/matcher/v3"
-	glootype "github.com/solo-io/gloo/projects/gloo/pkg/api/external/envoy/type/v3"
 	v1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins/pluginutils"
@@ -40,6 +38,10 @@ func (p *plugin) Init(params plugins.InitParams) error {
 
 func (p *plugin) HttpFilters(_ plugins.Params, listener *v1.HttpListener) ([]plugins.StagedHttpFilter, error) {
 	glooCsrfConfig := listener.GetOptions().GetCsrf()
+	if glooCsrfConfig == nil {
+		return nil, nil
+	}
+
 	envoyCsrfConfig, err := translateCsrfConfig(glooCsrfConfig)
 	if err != nil {
 		return nil, err
@@ -105,36 +107,30 @@ func (p *plugin) ProcessWeightedDestination(
 
 func translateCsrfConfig(csrf *csrf.CsrfPolicy) (*envoycsrf.CsrfPolicy, error) {
 	csrfPolicy := &envoycsrf.CsrfPolicy{
-		FilterEnabled:     translateFilterEnabled(csrf.GetFilterEnabled()),
-		ShadowEnabled:     translateShadowEnabled(csrf.GetShadowEnabled()),
+		FilterEnabled:     translateRuntimeFractionalPercent(csrf.GetFilterEnabled()),
+		ShadowEnabled:     translateRuntimeFractionalPercent(csrf.GetShadowEnabled()),
 		AdditionalOrigins: translateAdditionalOrigins(csrf.GetAdditionalOrigins()),
 	}
 
 	return csrfPolicy, csrfPolicy.Validate()
-
-}
-
-func translateFilterEnabled(glooFilterEnabled *v3.RuntimeFractionalPercent) *envoy_config_core.RuntimeFractionalPercent {
-	if glooFilterEnabled == nil {
-		return translateRuntimeFractionalPercent(&gloo_config_core.RuntimeFractionalPercent{
-			DefaultValue: &glootype.FractionalPercent{},
-		})
-	}
-	return translateRuntimeFractionalPercent(glooFilterEnabled)
-}
-
-func translateShadowEnabled(glooShadowEnabled *v3.RuntimeFractionalPercent) *envoy_config_core.RuntimeFractionalPercent {
-	if glooShadowEnabled == nil {
-		return nil
-	}
-	return translateRuntimeFractionalPercent(glooShadowEnabled)
 }
 
 func translateRuntimeFractionalPercent(rfp *v3.RuntimeFractionalPercent) *envoy_config_core.RuntimeFractionalPercent {
+	if rfp == nil {
+		return &envoy_config_core.RuntimeFractionalPercent{
+			DefaultValue: &envoytype.FractionalPercent{
+				Numerator:   1,
+				Denominator: envoytype.FractionalPercent_HUNDRED,
+			},
+		}
+	}
+
 	return &envoy_config_core.RuntimeFractionalPercent{
 		DefaultValue: &envoytype.FractionalPercent{
 			Numerator:   rfp.GetDefaultValue().GetNumerator(),
-			Denominator: envoytype.FractionalPercent_DenominatorType(rfp.GetDefaultValue().GetDenominator()),
+			Denominator: envoytype.FractionalPercent_DenominatorType(
+				envoytype.FractionalPercent_DenominatorType_value[rfp.GetDefaultValue().GetDenominator().String()],
+			),
 		},
 		RuntimeKey: rfp.GetRuntimeKey(),
 	}

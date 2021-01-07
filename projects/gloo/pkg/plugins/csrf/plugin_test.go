@@ -26,130 +26,73 @@ import (
 
 var _ = Describe("plugin", func() {
 
-	var apiFilter gloo_config_core.RuntimeFractionalPercent
-	var envoyFilter envoy_config_core.RuntimeFractionalPercent
-	var apiAdditionalOrigins []*gloo_type_matcher.StringMatcher
-	var envoyAdditionalOrigins []*envoy_type_matcher.StringMatcher
+	var (
+		glooRfp *gloo_config_core.RuntimeFractionalPercent
+		envoyRfp *envoy_config_core.RuntimeFractionalPercent
+		envoyZeroRfp *envoy_config_core.RuntimeFractionalPercent
+		glooAdditionalOrigins []*gloo_type_matcher.StringMatcher
+		envoyAdditionalOrigins []*envoy_type_matcher.StringMatcher
+	)
 
 	BeforeEach(func() {
-		apiFilter = gloo_config_core.RuntimeFractionalPercent{
+		glooRfp = &gloo_config_core.RuntimeFractionalPercent{
 			DefaultValue: &glootype.FractionalPercent{
 				Numerator:   uint32(100),
 				Denominator: glootype.FractionalPercent_HUNDRED,
 			},
+			RuntimeKey: "csrf.runtime_key",
 		}
 
-		envoyFilter = envoy_config_core.RuntimeFractionalPercent{
+		envoyRfp = &envoy_config_core.RuntimeFractionalPercent{
 			DefaultValue: &envoytype.FractionalPercent{
 				Numerator:   uint32(100),
 				Denominator: envoytype.FractionalPercent_HUNDRED,
 			},
+			RuntimeKey: "csrf.runtime_key",
 		}
 
-		apiAdditionalOrigins = []*gloo_type_matcher.StringMatcher{
-			{
-				MatchPattern: &gloo_type_matcher.StringMatcher_Exact{
-					Exact: "test",
-				},
-				IgnoreCase: true,
+		envoyZeroRfp = &envoy_config_core.RuntimeFractionalPercent{
+			DefaultValue: &envoytype.FractionalPercent{
+				Numerator:   uint32(0),
+				Denominator: envoytype.FractionalPercent_HUNDRED,
 			},
 		}
 
-		envoyAdditionalOrigins = []*envoy_type_matcher.StringMatcher{
-			{
-				MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-					Exact: "test",
-				},
-				IgnoreCase: true,
+		glooAdditionalOrigins = []*gloo_type_matcher.StringMatcher{{
+			MatchPattern: &gloo_type_matcher.StringMatcher_Exact{
+				Exact: "test",
 			},
-		}
+			IgnoreCase: true,
+		}}
+
+		envoyAdditionalOrigins = []*envoy_type_matcher.StringMatcher{{
+			MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+				Exact: "test",
+			},
+			IgnoreCase: true,
+		}}
 	})
 
-	It("copies the csrf config from the listener to the filter with filters enabled", func() {
-		filters, err := NewPlugin().HttpFilters(plugins.Params{}, &v1.HttpListener{
-			Options: &v1.HttpListenerOptions{
-				Csrf: &gloocsrf.CsrfPolicy{
-					FilterEnabled:     &apiFilter,
-					AdditionalOrigins: apiAdditionalOrigins,
+	Context("HttpFilterPlugin", func() {
+
+		It("copies config with filters enabled", func() {
+			filters, err := NewPlugin().HttpFilters(plugins.Params{}, &v1.HttpListener{
+				Options: &v1.HttpListenerOptions{
+					Csrf: &gloocsrf.CsrfPolicy{
+						FilterEnabled:     glooRfp,
+						AdditionalOrigins: glooAdditionalOrigins,
+					},
 				},
-			},
-		})
+			})
 
-		Expect(err).NotTo(HaveOccurred())
-		expectedStageFilter := plugins.StagedHttpFilter{
-			HttpFilter: &envoyhcm.HttpFilter{
-				Name: FilterName,
-				ConfigType: &envoyhcm.HttpFilter_TypedConfig{
-					TypedConfig: utils.MustMessageToAny(&envoycsrf.CsrfPolicy{
-						FilterEnabled:     &envoyFilter,
-						AdditionalOrigins: envoyAdditionalOrigins,
-					}),
-				},
-			},
-			Stage: plugins.FilterStage{
-				RelativeTo: 8,
-				Weight:     0,
-			},
-		}
-
-		Expect(filters[0].HttpFilter).To(matchers.MatchProto(expectedStageFilter.HttpFilter))
-		Expect(filters[0].Stage).To(Equal(expectedStageFilter.Stage))
-	})
-
-	It("copies the csrf config from the listener to the filter with shadow enabled", func() {
-		filters, err := NewPlugin().HttpFilters(plugins.Params{}, &v1.HttpListener{
-			Options: &v1.HttpListenerOptions{
-				Csrf: &gloocsrf.CsrfPolicy{
-					ShadowEnabled:     &apiFilter,
-					AdditionalOrigins: apiAdditionalOrigins,
-				},
-			},
-		})
-
-		Expect(err).NotTo(HaveOccurred())
-		expectedStageFilter := plugins.StagedHttpFilter{
-			HttpFilter: &envoyhcm.HttpFilter{
-				Name: FilterName,
-				ConfigType: &envoyhcm.HttpFilter_TypedConfig{
-					TypedConfig: utils.MustMessageToAny(&envoycsrf.CsrfPolicy{
-						FilterEnabled: &envoy_config_core.RuntimeFractionalPercent{
-							DefaultValue: &envoytype.FractionalPercent{},
-						},
-						ShadowEnabled:     &envoyFilter,
-						AdditionalOrigins: envoyAdditionalOrigins,
-					}),
-				},
-			},
-			Stage: plugins.FilterStage{
-				RelativeTo: 8,
-				Weight:     0,
-			},
-		}
-
-		Expect(filters[0].HttpFilter).To(matchers.MatchProto(expectedStageFilter.HttpFilter))
-		Expect(filters[0].Stage).To(Equal(expectedStageFilter.Stage))
-	})
-
-	It("copies the csrf config from the listener to the filter with both enabled and shadow mode fields", func() {
-		filters, err := NewPlugin().HttpFilters(plugins.Params{}, &v1.HttpListener{
-			Options: &v1.HttpListenerOptions{
-				Csrf: &gloocsrf.CsrfPolicy{
-					FilterEnabled:     &apiFilter,
-					ShadowEnabled:     &apiFilter,
-					AdditionalOrigins: apiAdditionalOrigins,
-				},
-			},
-		})
-
-		Expect(err).NotTo(HaveOccurred())
-		Expect(filters).To(Equal([]plugins.StagedHttpFilter{
-			{
+			Expect(err).NotTo(HaveOccurred())
+			expectedStageFilter := plugins.StagedHttpFilter{
 				HttpFilter: &envoyhcm.HttpFilter{
 					Name: FilterName,
 					ConfigType: &envoyhcm.HttpFilter_TypedConfig{
 						TypedConfig: utils.MustMessageToAny(&envoycsrf.CsrfPolicy{
-							FilterEnabled:     &envoyFilter,
-							ShadowEnabled:     &envoyFilter,
+							FilterEnabled:     envoyRfp,
+							ShadowEnabled: envoyZeroRfp,
 							AdditionalOrigins: envoyAdditionalOrigins,
 						}),
 					},
@@ -158,71 +101,152 @@ var _ = Describe("plugin", func() {
 					RelativeTo: 8,
 					Weight:     0,
 				},
-			},
-		}))
+			}
+
+			Expect(filters[0].HttpFilter).To(matchers.MatchProto(expectedStageFilter.HttpFilter))
+			Expect(filters[0].Stage).To(Equal(expectedStageFilter.Stage))
+		})
+
+		It("copies config with shadow enabled", func() {
+			filters, err := NewPlugin().HttpFilters(plugins.Params{}, &v1.HttpListener{
+				Options: &v1.HttpListenerOptions{
+					Csrf: &gloocsrf.CsrfPolicy{
+						ShadowEnabled:     glooRfp,
+						AdditionalOrigins: glooAdditionalOrigins,
+					},
+				},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			expectedStageFilter := plugins.StagedHttpFilter{
+				HttpFilter: &envoyhcm.HttpFilter{
+					Name: FilterName,
+					ConfigType: &envoyhcm.HttpFilter_TypedConfig{
+						TypedConfig: utils.MustMessageToAny(&envoycsrf.CsrfPolicy{
+							FilterEnabled: envoyZeroRfp,
+							ShadowEnabled:     envoyRfp,
+							AdditionalOrigins: envoyAdditionalOrigins,
+						}),
+					},
+				},
+				Stage: plugins.FilterStage{
+					RelativeTo: 8,
+					Weight:     0,
+				},
+			}
+
+			Expect(filters[0].HttpFilter).To(matchers.MatchProto(expectedStageFilter.HttpFilter))
+			Expect(filters[0].Stage).To(Equal(expectedStageFilter.Stage))
+		})
+
+		It("copies config with both enabled and shadow mode fields", func() {
+			filters, err := NewPlugin().HttpFilters(plugins.Params{}, &v1.HttpListener{
+				Options: &v1.HttpListenerOptions{
+					Csrf: &gloocsrf.CsrfPolicy{
+						FilterEnabled:     glooRfp,
+						ShadowEnabled:     glooRfp,
+						AdditionalOrigins: glooAdditionalOrigins,
+					},
+				},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(filters).To(Equal([]plugins.StagedHttpFilter{{
+				HttpFilter: &envoyhcm.HttpFilter{
+					Name: FilterName,
+					ConfigType: &envoyhcm.HttpFilter_TypedConfig{
+						TypedConfig: utils.MustMessageToAny(&envoycsrf.CsrfPolicy{
+							FilterEnabled:     envoyRfp,
+							ShadowEnabled:     envoyRfp,
+							AdditionalOrigins: envoyAdditionalOrigins,
+						}),
+					},
+				},
+				Stage: plugins.FilterStage{
+					RelativeTo: 8,
+					Weight:     0,
+				},
+			}}))
+		})
+
 	})
 
-	It("allows route specific csrf config", func() {
-		p := NewPlugin()
-		out := &envoy_config_route.Route{}
-		err := p.ProcessRoute(plugins.RouteParams{}, &v1.Route{
-			Options: &v1.RouteOptions{
-				Csrf: &gloocsrf.CsrfPolicy{
-					FilterEnabled:     &apiFilter,
-					ShadowEnabled:     &gloo_config_core.RuntimeFractionalPercent{},
-					AdditionalOrigins: apiAdditionalOrigins,
+	Context("VirtualHostPlugin", func() {
+
+		It("allows vhost specific csrf config", func() {
+			p := NewPlugin()
+			out := &envoy_config_route.VirtualHost{}
+			err := p.ProcessVirtualHost(plugins.VirtualHostParams{}, &v1.VirtualHost{
+				Options: &v1.VirtualHostOptions{
+					Csrf: &gloocsrf.CsrfPolicy{
+						FilterEnabled:     glooRfp,
+						ShadowEnabled:     glooRfp,
+						AdditionalOrigins: glooAdditionalOrigins,
+					},
 				},
-			},
-		}, out)
+			}, out)
+			Expect(err).NotTo(HaveOccurred())
 
-		var cfg envoycsrf.CsrfPolicy
-		err = ptypes.UnmarshalAny(out.GetTypedPerFilterConfig()[FilterName], &cfg)
+			var cfg envoycsrf.CsrfPolicy
+			err = ptypes.UnmarshalAny(out.GetTypedPerFilterConfig()[FilterName], &cfg)
 
-		Expect(err).NotTo(HaveOccurred())
-		Expect(cfg.GetAdditionalOrigins()).To(Equal(envoyAdditionalOrigins))
-		Expect(cfg.GetFilterEnabled()).To(Equal(&envoyFilter))
+			Expect(cfg.GetAdditionalOrigins()).To(Equal(envoyAdditionalOrigins))
+			Expect(cfg.GetFilterEnabled()).To(Equal(envoyRfp))
+			Expect(cfg.GetShadowEnabled()).To(Equal(envoyRfp))
+		})
+
 	})
 
-	It("allows vhost specific csrf config", func() {
-		p := NewPlugin()
-		out := &envoy_config_route.VirtualHost{}
-		err := p.ProcessVirtualHost(plugins.VirtualHostParams{}, &v1.VirtualHost{
-			Options: &v1.VirtualHostOptions{
-				Csrf: &gloocsrf.CsrfPolicy{
-					FilterEnabled:     &apiFilter,
-					ShadowEnabled:     &gloo_config_core.RuntimeFractionalPercent{},
-					AdditionalOrigins: apiAdditionalOrigins,
+	Context("WeightedDestinationPlugin", func() {
+
+		It("allows weighted destination specific csrf config", func() {
+			p := NewPlugin()
+			out := &envoy_config_route.WeightedCluster_ClusterWeight{}
+			err := p.ProcessWeightedDestination(plugins.RouteParams{}, &v1.WeightedDestination{
+				Options: &v1.WeightedDestinationOptions{
+					Csrf: &gloocsrf.CsrfPolicy{
+						FilterEnabled:     glooRfp,
+						ShadowEnabled:     glooRfp,
+						AdditionalOrigins: glooAdditionalOrigins,
+					},
 				},
-			},
-		}, out)
+			}, out)
+			Expect(err).NotTo(HaveOccurred())
 
-		var cfg envoycsrf.CsrfPolicy
-		err = ptypes.UnmarshalAny(out.GetTypedPerFilterConfig()[FilterName], &cfg)
+			var cfg envoycsrf.CsrfPolicy
+			err = ptypes.UnmarshalAny(out.GetTypedPerFilterConfig()[FilterName], &cfg)
 
-		Expect(err).NotTo(HaveOccurred())
-		Expect(cfg.GetAdditionalOrigins()).To(Equal(envoyAdditionalOrigins))
-		Expect(cfg.GetFilterEnabled()).To(Equal(&envoyFilter))
+			Expect(cfg.GetAdditionalOrigins()).To(Equal(envoyAdditionalOrigins))
+			Expect(cfg.GetFilterEnabled()).To(Equal(envoyRfp))
+			Expect(cfg.GetShadowEnabled()).To(Equal(envoyRfp))
+		})
+
 	})
 
-	It("allows weighted destination specific csrf config", func() {
-		p := NewPlugin()
-		out := &envoy_config_route.WeightedCluster_ClusterWeight{}
-		err := p.ProcessWeightedDestination(plugins.RouteParams{}, &v1.WeightedDestination{
-			Options: &v1.WeightedDestinationOptions{
-				Csrf: &gloocsrf.CsrfPolicy{
-					FilterEnabled:     &apiFilter,
-					ShadowEnabled:     &gloo_config_core.RuntimeFractionalPercent{},
-					AdditionalOrigins: apiAdditionalOrigins,
+	Context("RoutePlugin", func() {
+
+		It("allows route specific csrf config", func() {
+			p := NewPlugin()
+			out := &envoy_config_route.Route{}
+			err := p.ProcessRoute(plugins.RouteParams{}, &v1.Route{
+				Options: &v1.RouteOptions{
+					Csrf: &gloocsrf.CsrfPolicy{
+						FilterEnabled:     glooRfp,
+						ShadowEnabled:     glooRfp,
+						AdditionalOrigins: glooAdditionalOrigins,
+					},
 				},
-			},
-		}, out)
+			}, out)
+			Expect(err).NotTo(HaveOccurred())
 
-		var cfg envoycsrf.CsrfPolicy
-		err = ptypes.UnmarshalAny(out.GetTypedPerFilterConfig()[FilterName], &cfg)
+			var cfg envoycsrf.CsrfPolicy
+			err = ptypes.UnmarshalAny(out.GetTypedPerFilterConfig()[FilterName], &cfg)
 
-		Expect(err).NotTo(HaveOccurred())
-		Expect(cfg.GetAdditionalOrigins()).To(Equal(envoyAdditionalOrigins))
-		Expect(cfg.GetFilterEnabled()).To(Equal(&envoyFilter))
+			Expect(cfg.GetAdditionalOrigins()).To(Equal(envoyAdditionalOrigins))
+			Expect(cfg.GetFilterEnabled()).To(Equal(envoyRfp))
+			Expect(cfg.GetShadowEnabled()).To(Equal(envoyRfp))
+		})
+
 	})
 
 })

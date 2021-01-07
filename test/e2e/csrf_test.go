@@ -41,7 +41,7 @@ var (
 	validOriginResponseMatcher   = BeEmpty()
 )
 
-var _ = Describe("CSRF", func() {
+var _ = FDescribe("CSRF", func() {
 
 	var (
 		err           error
@@ -352,6 +352,81 @@ var _ = Describe("CSRF", func() {
 
 				p1 := checkProxy()
 				print(p1)
+
+				spoofedRequestShadow := buildRequestFromOrigin(allowedOrigin)
+				Eventually(spoofedRequestShadow, 10*time.Second, 1*time.Second).Should(validOriginResponseMatcher)
+				statisticsShadow := getEnvoyStats()
+				Expect(statisticsShadow).To(matchInvalidRequestEqualTo(1))
+				Expect(statisticsShadow).To(matchValidRequestEqualTo(2))
+
+				spoofedRequestShadowInvalid := buildRequestFromOrigin(unAllowedOrigin)
+				Eventually(spoofedRequestShadowInvalid, 10*time.Second, 1*time.Second).Should(validOriginResponseMatcher)
+				// Number of requests until envoy applies new config can vary, resulting in multiple invalid requests recorded
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_invalid: [2-9]"))
+				Expect(getEnvoyStats()).To(MatchRegexp("http.http.csrf.request_valid: 2"))
+			})
+
+		})
+
+		Context("[USING GATEWAY] switch from enabled to shadow mode", func() {
+
+			var testVs *gatewayv1.VirtualService
+
+			JustBeforeEach(func() {
+				gatewayClient := testClients.GatewayClient
+				gw, err := gatewayClient.Read(writeNamespace, gatewaydefaults.GatewayProxyName, clients.ReadOpts{})
+				Expect(err).NotTo(HaveOccurred())
+
+				// build a csrf policy
+				csrfPolicy := getCsrfPolicyWithFilterEnabled(allowedOrigin)
+
+				// update the listener to include the csrf policy
+				httpGateway := gw.GetHttpGateway()
+				httpGateway.Options = &gloov1.HttpListenerOptions{
+					Csrf: csrfPolicy,
+				}
+				_, err = gatewayClient.Write(gw, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
+				Expect(err).NotTo(HaveOccurred())
+
+				// write a virtual service so we have a proxy to our test upstream
+				testVs = getTrivialVirtualServiceForUpstream(writeNamespace, up.Metadata.Ref())
+				_, err = testClients.VirtualServiceClient.Write(testVs, clients.WriteOpts{})
+				Expect(err).NotTo(HaveOccurred())
+
+				checkProxy()
+				checkVirtualService(testVs)
+			})
+
+			It("Block on enabled, allow in shadow mode", func() {
+				request := buildRequestFromOrigin(allowedOrigin)
+				Eventually(request, 10*time.Second, 1*time.Second).Should(validOriginResponseMatcher)
+
+				statistics := getEnvoyStats()
+				Expect(statistics).To(matchInvalidRequestEqualTo(0))
+				Expect(statistics).To(matchValidRequestEqualTo(1))
+
+				invalidRequest := buildRequestFromOrigin(unAllowedOrigin)
+				Eventually(invalidRequest, 10*time.Second, 1*time.Second).Should(invalidOriginResponseMatcher)
+
+				statistics = getEnvoyStats()
+				Expect(statistics).To(matchInvalidRequestEqualTo(1))
+				Expect(statistics).To(matchValidRequestEqualTo(1))
+
+				gatewayClient := testClients.GatewayClient
+				gw, err := gatewayClient.Read(writeNamespace, gatewaydefaults.GatewayProxyName, clients.ReadOpts{})
+				Expect(err).NotTo(HaveOccurred())
+
+				// update the listener to include the csrf policy
+				httpGateway := gw.GetHttpGateway()
+				httpGateway.Options = &gloov1.HttpListenerOptions{
+					Csrf: getCsrfPolicyWithShadowEnabled(allowedOrigin),
+				}
+				_, err = gatewayClient.Write(gw, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
+				Expect(err).NotTo(HaveOccurred())
+
+				checkProxy()
+				checkVirtualService(testVs)
+
 
 				spoofedRequestShadow := buildRequestFromOrigin(allowedOrigin)
 				Eventually(spoofedRequestShadow, 10*time.Second, 1*time.Second).Should(validOriginResponseMatcher)
@@ -1010,6 +1085,75 @@ var _ = Describe("CSRF", func() {
 
 	})
 
+	Context("API SNAPSHOT TEST", func() {
+		filterEnabled := gatewayv1.ApiSnapshot{
+			Gateways: gatewayv1.GatewayList{{
+				GatewayType: &gatewayv1.Gateway_HttpGateway{
+					HttpGateway: &gatewayv1.HttpGateway{
+						Options: &gloov1.HttpListenerOptions{
+							Csrf: &csrf.CsrfPolicy{
+								FilterEnabled: &gloo_config_core.RuntimeFractionalPercent{
+									DefaultValue: &glootype.FractionalPercent{
+										Numerator:   uint32(99),
+										Denominator: glootype.FractionalPercent_HUNDRED,
+									},
+								},
+								AdditionalOrigins: []*gloo_type_matcher.StringMatcher{{
+									MatchPattern: &gloo_type_matcher.StringMatcher_SafeRegex{
+										SafeRegex: &gloo_type_matcher.RegexMatcher{
+											EngineType: &gloo_type_matcher.RegexMatcher_GoogleRe2{
+												GoogleRe2: &gloo_type_matcher.RegexMatcher_GoogleRE2{},
+											},
+											Regex: "origin",
+										},
+									},
+								}},
+							},
+						},
+					},
+				},
+			}},
+		}
+
+		shadowEnabled := gatewayv1.ApiSnapshot{
+			Gateways: gatewayv1.GatewayList{{
+				GatewayType: &gatewayv1.Gateway_HttpGateway{
+					HttpGateway: &gatewayv1.HttpGateway{
+						Options: &gloov1.HttpListenerOptions{
+							Csrf: &csrf.CsrfPolicy{
+								ShadowEnabled: &gloo_config_core.RuntimeFractionalPercent{
+									DefaultValue: &glootype.FractionalPercent{
+										Numerator:   uint32(99),
+										Denominator: glootype.FractionalPercent_HUNDRED,
+									},
+								},
+								AdditionalOrigins: []*gloo_type_matcher.StringMatcher{{
+									MatchPattern: &gloo_type_matcher.StringMatcher_SafeRegex{
+										SafeRegex: &gloo_type_matcher.RegexMatcher{
+											EngineType: &gloo_type_matcher.RegexMatcher_GoogleRe2{
+												GoogleRe2: &gloo_type_matcher.RegexMatcher_GoogleRE2{},
+											},
+											Regex: "origin",
+										},
+									},
+								}},
+							},
+						},
+					},
+				},
+			}},
+		}
+
+		FIt("compare hashes", func() {
+			filterEnabledHash, _ := filterEnabled.Hash(nil)
+			shadowEnabledHash, _ := shadowEnabled.Hash(nil)
+
+			// this fails, which shows that when hashing two different gateways, they hash to the same value.
+
+			Expect(filterEnabledHash).NotTo(Equal(shadowEnabledHash))
+		})
+	})
+
 })
 
 func matchValidRequestEqualTo(count int) types.GomegaMatcher {
@@ -1024,7 +1168,7 @@ func getCsrfPolicyWithFilterEnabled(origin string) *csrf.CsrfPolicy {
 	return &csrf.CsrfPolicy{
 		FilterEnabled: &gloo_config_core.RuntimeFractionalPercent{
 			DefaultValue: &glootype.FractionalPercent{
-				Numerator:   uint32(100),
+				Numerator:   uint32(99),
 				Denominator: glootype.FractionalPercent_HUNDRED,
 			},
 		},
@@ -1045,7 +1189,7 @@ func getCsrfPolicyWithShadowEnabled(origin string) *csrf.CsrfPolicy {
 	return &csrf.CsrfPolicy{
 		ShadowEnabled: &gloo_config_core.RuntimeFractionalPercent{
 			DefaultValue: &glootype.FractionalPercent{
-				Numerator:   uint32(100),
+				Numerator:   uint32(99),
 				Denominator: glootype.FractionalPercent_HUNDRED,
 			},
 		},

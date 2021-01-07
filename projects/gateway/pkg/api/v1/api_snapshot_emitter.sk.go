@@ -285,6 +285,7 @@ func (c *apiEmitter) Snapshots(watchNamespaces []string, opts clients.WatchOpts)
 			contextutils.LoggerFrom(ctx).Panicw("error while hashing, this should never happen", zap.Error(err))
 		}
 		sync := func() {
+			// [sam-heilbron] this is the line causing issues with the csrf filter
 			currentHash, err := currentSnapshot.Hash(nil)
 			// this should never happen, so panic if it does
 			if err != nil {
