@@ -15,7 +15,7 @@ func Main(customCtx context.Context) error {
 		LoggerName:  "fds",
 		Version:     version.Version,
 		SetupFunc:   gloosyncer.NewSetupFuncWithRun(syncer.RunFDS),
-		ExitOnError: true,
+		ExitOnError: false,
 		CustomCtx:   customCtx,
 	})
 }

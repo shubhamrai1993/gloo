@@ -13,7 +13,7 @@ func Main(customCtx context.Context) error {
 		LoggerName:  "ingress",
 		Version:     version.Version,
 		SetupFunc:   Setup,
-		ExitOnError: true,
+		ExitOnError: false,
 		CustomCtx:   customCtx,
 	})
 }

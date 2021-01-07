@@ -14,7 +14,7 @@ func Main(customCtx context.Context) error {
 		LoggerName:  "gateway",
 		Version:     version.Version,
 		SetupFunc:   syncer.Setup,
-		ExitOnError: true,
+		ExitOnError: false,
 		CustomCtx:   customCtx,
 	})
 }

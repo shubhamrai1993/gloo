@@ -25,7 +25,7 @@ func startSetupLoop(ctx context.Context, usageReporter client.UsagePayloadReader
 		LoggerName:    "gloo",
 		Version:       version.Version,
 		SetupFunc:     syncer.NewSetupFunc(),
-		ExitOnError:   true,
+		ExitOnError:   false,
 		CustomCtx:     ctx,
 		UsageReporter: usageReporter,
 	})
