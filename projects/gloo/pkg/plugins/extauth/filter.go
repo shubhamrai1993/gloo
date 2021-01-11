@@ -75,6 +75,7 @@ func BuildHttpFilters(
 func generateEnvoyConfigForFilter(settings *extauthv1.Settings, extauthUpstreamRef *core.ResourceRef) (*envoyauth.ExtAuthz, error) {
 	cfg := &envoyauth.ExtAuthz{
 		MetadataContextNamespaces: []string{JWTFilterName},
+		TransportApiVersion: envoycore.ApiVersion_V3,
 	}
 	httpService := settings.GetHttpService()
 	if httpService == nil {
