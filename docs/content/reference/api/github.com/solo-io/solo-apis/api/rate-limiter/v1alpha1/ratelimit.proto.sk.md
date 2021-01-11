@@ -30,6 +30,10 @@ weight: 5
 - [HeaderValueMatch](#headervaluematch)
 - [HeaderMatcher](#headermatcher)
 - [Int64Range](#int64range)
+- [MetaData](#metadata)
+- [Source](#source)
+- [MetadataKey](#metadatakey)
+- [PathSegment](#pathsegment)
   
 
 
@@ -380,17 +384,19 @@ https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_compone
 "remoteAddress": .ratelimit.api.solo.io.Action.RemoteAddress
 "genericKey": .ratelimit.api.solo.io.Action.GenericKey
 "headerValueMatch": .ratelimit.api.solo.io.Action.HeaderValueMatch
+"metadata": .ratelimit.api.solo.io.Action.MetaData
 
 ```
 
 | Field | Type | Description |
 | ----- | ---- | ----------- | 
-| `sourceCluster` | [.ratelimit.api.solo.io.Action.SourceCluster](../ratelimit.proto.sk/#sourcecluster) | Rate limit on source cluster. Only one of `sourceCluster`, `destinationCluster`, `requestHeaders`, `remoteAddress`, or `headerValueMatch` can be set. |
-| `destinationCluster` | [.ratelimit.api.solo.io.Action.DestinationCluster](../ratelimit.proto.sk/#destinationcluster) | Rate limit on destination cluster. Only one of `destinationCluster`, `sourceCluster`, `requestHeaders`, `remoteAddress`, or `headerValueMatch` can be set. |
-| `requestHeaders` | [.ratelimit.api.solo.io.Action.RequestHeaders](../ratelimit.proto.sk/#requestheaders) | Rate limit on request headers. Only one of `requestHeaders`, `sourceCluster`, `destinationCluster`, `remoteAddress`, or `headerValueMatch` can be set. |
-| `remoteAddress` | [.ratelimit.api.solo.io.Action.RemoteAddress](../ratelimit.proto.sk/#remoteaddress) | Rate limit on remote address. Only one of `remoteAddress`, `sourceCluster`, `destinationCluster`, `requestHeaders`, or `headerValueMatch` can be set. |
-| `genericKey` | [.ratelimit.api.solo.io.Action.GenericKey](../ratelimit.proto.sk/#generickey) | Rate limit on a generic key. Only one of `genericKey`, `sourceCluster`, `destinationCluster`, `requestHeaders`, or `headerValueMatch` can be set. |
-| `headerValueMatch` | [.ratelimit.api.solo.io.Action.HeaderValueMatch](../ratelimit.proto.sk/#headervaluematch) | Rate limit on the existence of request headers. Only one of `headerValueMatch`, `sourceCluster`, `destinationCluster`, `requestHeaders`, or `genericKey` can be set. |
+| `sourceCluster` | [.ratelimit.api.solo.io.Action.SourceCluster](../ratelimit.proto.sk/#sourcecluster) | Rate limit on source cluster. Only one of `sourceCluster`, `destinationCluster`, `requestHeaders`, `remoteAddress`, `genericKey`, or `metadata` can be set. |
+| `destinationCluster` | [.ratelimit.api.solo.io.Action.DestinationCluster](../ratelimit.proto.sk/#destinationcluster) | Rate limit on destination cluster. Only one of `destinationCluster`, `sourceCluster`, `requestHeaders`, `remoteAddress`, `genericKey`, or `metadata` can be set. |
+| `requestHeaders` | [.ratelimit.api.solo.io.Action.RequestHeaders](../ratelimit.proto.sk/#requestheaders) | Rate limit on request headers. Only one of `requestHeaders`, `sourceCluster`, `destinationCluster`, `remoteAddress`, `genericKey`, or `metadata` can be set. |
+| `remoteAddress` | [.ratelimit.api.solo.io.Action.RemoteAddress](../ratelimit.proto.sk/#remoteaddress) | Rate limit on remote address. Only one of `remoteAddress`, `sourceCluster`, `destinationCluster`, `requestHeaders`, `genericKey`, or `metadata` can be set. |
+| `genericKey` | [.ratelimit.api.solo.io.Action.GenericKey](../ratelimit.proto.sk/#generickey) | Rate limit on a generic key. Only one of `genericKey`, `sourceCluster`, `destinationCluster`, `requestHeaders`, `remoteAddress`, or `metadata` can be set. |
+| `headerValueMatch` | [.ratelimit.api.solo.io.Action.HeaderValueMatch](../ratelimit.proto.sk/#headervaluematch) | Rate limit on the existence of request headers. Only one of `headerValueMatch`, `sourceCluster`, `destinationCluster`, `requestHeaders`, `remoteAddress`, or `metadata` can be set. |
+| `metadata` | [.ratelimit.api.solo.io.Action.MetaData](../ratelimit.proto.sk/#metadata) | Rate limit on metadata. Only one of `metadata`, `sourceCluster`, `destinationCluster`, `requestHeaders`, `remoteAddress`, or `headerValueMatch` can be set. |
 
 
 
@@ -590,6 +596,103 @@ end).
 | ----- | ---- | ----------- | 
 | `start` | `int` | start of the range (inclusive). |
 | `end` | `int` | end of the range (exclusive). |
+
+
+
+
+---
+### MetaData
+
+ 
+The following descriptor entry is appended when the metadata contains a key value:
+
+.. code-block:: cpp
+
+  ("<descriptor_key>", "<value_queried_from_metadata>")
+
+```yaml
+"descriptorKey": string
+"metadataKey": .ratelimit.api.solo.io.MetadataKey
+"defaultValue": string
+"source": .ratelimit.api.solo.io.Action.MetaData.Source
+
+```
+
+| Field | Type | Description |
+| ----- | ---- | ----------- | 
+| `descriptorKey` | `string` | The key to use in the descriptor entry. |
+| `metadataKey` | [.ratelimit.api.solo.io.MetadataKey](../ratelimit.proto.sk/#metadatakey) | Metadata struct that defines the key and path to retrieve the string value. A match will only happen if the value in the metadata is of type string. |
+| `defaultValue` | `string` | An optional value to use if *metadata_key* is empty. If not set and no value is present under the metadata_key then no descriptor is generated. |
+| `source` | [.ratelimit.api.solo.io.Action.MetaData.Source](../ratelimit.proto.sk/#source) | Source of metadata. |
+
+
+
+
+---
+### Source
+
+
+
+| Name | Description |
+| ----- | ----------- | 
+| `DYNAMIC` | Query :ref:`dynamic metadata <well_known_dynamic_metadata>` |
+| `ROUTE_ENTRY` | Query :ref:`route entry metadata <envoy_api_field_config.route.v3.Route.metadata>` |
+
+
+
+
+---
+### MetadataKey
+
+ 
+MetadataKey provides a general interface using `key` and `path` to retrieve value from
+:ref:`Metadata <envoy_api_msg_config.core.v3.Metadata>`.
+
+For example, for the following Metadata:
+
+.. code-block:: yaml
+
+   filter_metadata:
+     envoy.xxx:
+       prop:
+         foo: bar
+         xyz:
+           hello: envoy
+
+The following MetadataKey will retrieve a string value "bar" from the Metadata.
+
+.. code-block:: yaml
+
+   key: envoy.xxx
+   path:
+   - key: prop
+   - key: foo
+
+```yaml
+
+```
+
+| Field | Type | Description |
+| ----- | ---- | ----------- | 
+
+
+
+
+---
+### PathSegment
+
+ 
+Specifies the segment in a path to retrieve value from Metadata.
+Currently it is only supported to specify the key, i.e. field name, as one segment of a path.
+
+```yaml
+"key": string
+
+```
+
+| Field | Type | Description |
+| ----- | ---- | ----------- | 
+| `key` | `string` | If specified, use the key to retrieve the value in a Struct. |
 
 
 

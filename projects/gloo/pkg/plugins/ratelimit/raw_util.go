@@ -2,6 +2,8 @@ package ratelimit
 
 import (
 	"context"
+	"fmt"
+	envoy_type_metadata_v3 "github.com/envoyproxy/go-control-plane/envoy/type/metadata/v3"
 
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
@@ -89,6 +91,32 @@ func convertAction(ctx context.Context, action *gloorl.Action) *envoy_config_rou
 			},
 		}
 
+	case *gloorl.Action_Metadata:
+		fmt.Println("-------------> converting metadata action")
+		convertedAction := &envoy_config_route_v3.RateLimit_Action_Metadata{
+			Metadata: &envoy_config_route_v3.RateLimit_Action_MetaData{
+				DescriptorKey: specificAction.Metadata.DescriptorKey,
+				MetadataKey: &envoy_type_metadata_v3.MetadataKey{
+					Key:  specificAction.Metadata.GetMetadataKey().GetKey(),
+					Path: nil,
+				},
+				DefaultValue: specificAction.Metadata.DefaultValue,
+				Source:       envoy_config_route_v3.RateLimit_Action_MetaData_Source(specificAction.Metadata.GetSource()),
+			},
+		}
+
+		if len(specificAction.Metadata.GetMetadataKey().GetPath()) > 0 {
+			var asd []*envoy_type_metadata_v3.MetadataKey_PathSegment
+			for _, segment := range specificAction.Metadata.GetMetadataKey().GetPath() {
+				asd = append(asd, &envoy_type_metadata_v3.MetadataKey_PathSegment{
+					Segment: &envoy_type_metadata_v3.MetadataKey_PathSegment_Key{
+						Key: segment.GetKey(),
+					},
+				})
+			}
+		}
+
+		retAction.ActionSpecifier = convertedAction
 	}
 
 	return &retAction

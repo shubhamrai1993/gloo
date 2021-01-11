@@ -74,7 +74,7 @@ require (
 	github.com/solo-io/protoc-gen-ext v0.0.14
 	github.com/solo-io/reporting-client v0.2.0
 	github.com/solo-io/skv2 v0.15.2
-	github.com/solo-io/solo-apis v0.0.0-20201208172621-1ef725df2bff
+	github.com/solo-io/solo-apis v0.0.0-20210111171156-ae43d1ac6bb8
 	github.com/solo-io/solo-kit v0.16.3
 	github.com/solo-io/wasm/tools/wasme/pkg v0.0.0-20201021213306-77f82bdc3cc3
 	github.com/spf13/afero v1.3.4
