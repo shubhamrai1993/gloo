@@ -114,6 +114,7 @@ func convertAction(ctx context.Context, action *gloorl.Action) *envoy_config_rou
 					},
 				})
 			}
+			convertedAction.Metadata.MetadataKey.Path = asd
 		}
 
 		retAction.ActionSpecifier = convertedAction
