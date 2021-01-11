@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	envoy_type_metadata_v3 "github.com/envoyproxy/go-control-plane/envoy/type/metadata/v3"
+	"github.com/solo-io/go-utils/contextutils"
+	"go.uber.org/zap"
 
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoyratelimit "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/ratelimit/v3"
@@ -93,6 +95,7 @@ func convertAction(ctx context.Context, action *gloorl.Action) *envoy_config_rou
 
 	case *gloorl.Action_Metadata:
 		fmt.Println("-------------> converting metadata action")
+		contextutils.LoggerFrom(ctx).Infow("------>", zap.Any("action", specificAction))
 		convertedAction := &envoy_config_route_v3.RateLimit_Action_Metadata{
 			Metadata: &envoy_config_route_v3.RateLimit_Action_MetaData{
 				DescriptorKey: specificAction.Metadata.DescriptorKey,
@@ -106,6 +109,7 @@ func convertAction(ctx context.Context, action *gloorl.Action) *envoy_config_rou
 		}
 
 		if len(specificAction.Metadata.GetMetadataKey().GetPath()) > 0 {
+			fmt.Println("inside if")
 			var asd []*envoy_type_metadata_v3.MetadataKey_PathSegment
 			for _, segment := range specificAction.Metadata.GetMetadataKey().GetPath() {
 				asd = append(asd, &envoy_type_metadata_v3.MetadataKey_PathSegment{
@@ -120,6 +124,7 @@ func convertAction(ctx context.Context, action *gloorl.Action) *envoy_config_rou
 		retAction.ActionSpecifier = convertedAction
 	}
 
+	contextutils.LoggerFrom(ctx).Infow("------>", zap.Any("retAction", &retAction))
 	return &retAction
 }
 
