@@ -168,7 +168,13 @@ func (v *validator) validateSnapshot(ctx context.Context, apply applyResource, d
 
 	ctx = contextutils.WithLogger(ctx, "gateway-validator")
 
+	if acquireLock {
+		v.lock.RLock()
+	}
 	snap := v.latestSnapshot.Clone()
+	if acquireLock {
+		v.lock.RUnlock()
+	}
 
 	if v.latestSnapshotErr != nil {
 		utils2.MeasureZero(ctx, mValidConfig)
@@ -446,8 +452,8 @@ func (v *validator) ValidateDeleteRouteTable(ctx context.Context, rtRef *core.Re
 		return errors.Errorf("Gateway validation is yet not available. Waiting for first snapshot")
 	}
 	v.lock.Lock()
-	snap := v.latestSnapshot.Clone()
 	defer v.lock.Unlock()
+	snap := v.latestSnapshot.Clone()
 
 	rt, err := snap.RouteTables.Find(rtRef.Strings())
 	if err != nil {
