@@ -109,6 +109,14 @@ var (
 			"Please note that cluster registration will only work on darwin and linux OS.",
 	}
 
+	DEMO_GATEWAY_COMMAND = cobra.Command{
+		Use:   "gateway",
+		Short: "Bootstrap a demo with Gloo Edge.",
+		Long: "Running the Gloo Edge demo setup locally requires 4 tools to be installed and accessible via the " +
+			"PATH: glooctl, kubectl, docker, and kind. This command will bootstrap a kind cluster with the 'hello-world' " +
+			"guide.",
+	}
+
 	GET_COMMAND = cobra.Command{
 		Use:     "get",
 		Aliases: []string{"g"},
