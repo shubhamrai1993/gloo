@@ -2,16 +2,17 @@ package envoy_test
 
 import (
 	"fmt"
+	"io/ioutil"
+	"regexp"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/solo-io/gloo/projects/gloo/pkg/defaults"
 	"github.com/solo-io/k8s-utils/testutils/kube"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	"io/ioutil"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"regexp"
 )
 
 var _ = Describe("Endpoint discovery works", func() {
@@ -22,7 +23,7 @@ var _ = Describe("Endpoint discovery works", func() {
 		clustersPath        = "http://localhost:19000/clusters"
 		clusters            string
 		kubeCtx             string
-		prevConfigDumpLen int
+		prevConfigDumpLen   int
 
 		findPetstoreClusterEndpoints = func() int {
 			clusters = kube.CurlWithEphemeralPod(ctx, ioutil.Discard, kubeCtx, defaults.GlooSystem, gatewayProxyPodName, clustersPath)
@@ -76,7 +77,6 @@ var _ = Describe("Endpoint discovery works", func() {
 		kube.EnableContainer(ctx, GinkgoWriter, kubeCtx, defaults.GlooSystem, "discovery")
 	})
 
-
 	It("can modify upstreams repeatedly", func() {
 		// Initialize a way to track the envoy config dump in order to tell when it has changed, and when the
 		// new upstream changes have been picked up.g
@@ -98,7 +98,6 @@ var _ = Describe("Endpoint discovery works", func() {
 
 			return nil
 		}, "5m", "5s").Should(BeNil())
-
 
 	})
 

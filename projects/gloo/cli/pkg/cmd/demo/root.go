@@ -18,6 +18,5 @@ func RootCmd(opts *options.Options) *cobra.Command {
 		},
 	}
 	cmd.AddCommand(federation(opts))
-	cmd.AddCommand(gateway(opts))
 	return cmd
 }

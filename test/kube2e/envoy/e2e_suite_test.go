@@ -2,6 +2,9 @@ package envoy_test
 
 import (
 	"context"
+	"os"
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gatewayv1 "github.com/solo-io/gloo/projects/gateway/pkg/api/v1"
@@ -12,8 +15,6 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 	"k8s.io/client-go/rest"
-	"os"
-	"testing"
 
 	"github.com/solo-io/go-utils/log"
 )
@@ -31,12 +32,12 @@ func TestE2e(t *testing.T) {
 var (
 	ctx    context.Context
 	cancel context.CancelFunc
-	err                  error
+	err    error
 	cfg    *rest.Config
 
 	namespace = "gloo-system"
 
-	upstreamClient gloov1.UpstreamClient
+	upstreamClient       gloov1.UpstreamClient
 	virtualServiceClient gatewayv1.VirtualServiceClient
 )
 
