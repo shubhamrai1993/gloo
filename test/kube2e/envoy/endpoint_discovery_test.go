@@ -11,8 +11,6 @@ import (
 	"github.com/solo-io/gloo/projects/gloo/pkg/defaults"
 	"github.com/solo-io/k8s-utils/testutils/kube"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 var _ = Describe("Endpoint discovery works", func() {
@@ -21,12 +19,11 @@ var _ = Describe("Endpoint discovery works", func() {
 		gatewayProxyPodName string
 		configDumpPath      = "http://localhost:19000/config_dump"
 		clustersPath        = "http://localhost:19000/clusters"
-		clusters            string
 		kubeCtx             string
 		prevConfigDumpLen   int
 
 		findPetstoreClusterEndpoints = func() int {
-			clusters = kube.CurlWithEphemeralPod(ctx, ioutil.Discard, kubeCtx, defaults.GlooSystem, gatewayProxyPodName, clustersPath)
+			clusters := kube.CurlWithEphemeralPod(ctx, ioutil.Discard, kubeCtx, defaults.GlooSystem, gatewayProxyPodName, clustersPath)
 			petstoreClusterEndpoints := regexp.MustCompile("\ndefault-petstore-8080_gloo-system::[0-9.]+:8080::")
 			matches := petstoreClusterEndpoints.FindAllStringIndex(clusters, -1)
 			fmt.Println(len(matches))
@@ -62,12 +59,7 @@ var _ = Describe("Endpoint discovery works", func() {
 
 	BeforeEach(func() {
 		// Find gateway-proxy pod name
-		clientset, err := kubernetes.NewForConfig(cfg)
-		Expect(err).NotTo(HaveOccurred())
-		pl, err := clientset.CoreV1().Pods(defaults.GlooSystem).List(ctx, v1.ListOptions{LabelSelector: "gloo=gateway-proxy"})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(pl.Items).NotTo(BeEmpty())
-		gatewayProxyPodName = pl.Items[0].GetName()
+		gatewayProxyPodName = kube.FindPodNameByLabel(cfg, ctx, defaults.GlooSystem, "gloo=gateway-proxy")
 
 		// Disable discovery so that we can modify upstreams without interruption
 		kube.DisableContainer(ctx, GinkgoWriter, kubeCtx, defaults.GlooSystem, "discovery", "discovery")
