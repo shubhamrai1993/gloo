@@ -4,7 +4,7 @@ Gloo Edge E2E Tests
 These tests do not run using the testrunner.
 
 ## Prerequisites
-Before running any of these tests, either run:
+Before running any of these tests, run:
 ```
 SETUP=envoy ./ci/setup-kind.sh
 ```

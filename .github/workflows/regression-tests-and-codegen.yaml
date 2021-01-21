@@ -86,7 +86,7 @@ jobs:
         version: v3.2.0
     - name: Setup test env
       run: |
-        ./ci/kind.sh
+        ./ci/load-kind-images.sh
     - name: Testing - kube e2e regression tests
       env:
         KUBE2E_TESTS: ${{ matrix.kube-e2e-test-type }}
@@ -133,7 +133,7 @@ jobs:
         version: v3.2.0
     - name: Setup test env
       run: |
-        ./ci/kind.sh
+        ./ci/load-kind-images.sh
         curl -sSL https://github.com/istio/istio/releases/download/1.7.4/istio-1.7.4-linux-amd64.tar.gz | tar -xzf - istio-1.7.4/bin/istioctl
         ./istio-1.7.4/bin/istioctl install --set profile=minimal
     - name: Testing - kube e2e regression tests

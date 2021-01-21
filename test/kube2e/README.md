@@ -40,7 +40,7 @@ The below table contains the environment variables that can be used to configure
 
 ```bash
 kind create cluster
-VERSION=kind ./ci/kind.sh
+VERSION=kind ./ci/load-kind-images.sh
 GO111MODULE=off go get -u github.com/onsi/ginkgo/ginkgo
 make glooctl-darwin-amd64 # if you are on a mac
 make glooctl-linux-amd64 # if you are on linux
