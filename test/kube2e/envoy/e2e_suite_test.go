@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/solo-io/gloo/projects/gloo/pkg/defaults"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gatewayv1 "github.com/solo-io/gloo/projects/gateway/pkg/api/v1"
@@ -35,8 +37,6 @@ var (
 	err    error
 	cfg    *rest.Config
 
-	namespace = "gloo-system"
-
 	upstreamClient       gloov1.UpstreamClient
 	virtualServiceClient gatewayv1.VirtualServiceClient
 )
@@ -47,7 +47,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred())
 
 	cache := kube.NewKubeCache(ctx)
-
 	upstreamClientFactory := &factory.KubeResourceClientFactory{
 		Crd:         gloov1.UpstreamCrd,
 		Cfg:         cfg,
@@ -58,16 +57,14 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		Cfg:         cfg,
 		SharedCache: cache,
 	}
-
 	upstreamClient, err = gloov1.NewUpstreamClient(ctx, upstreamClientFactory)
 	Expect(err).NotTo(HaveOccurred())
-
 	virtualServiceClient, err = gatewayv1.NewVirtualServiceClient(ctx, virtualServiceClientFactory)
 	Expect(err).NotTo(HaveOccurred())
 
 	// Wait for Virtual Service to be accepted
 	Eventually(func() bool {
-		vs, err := virtualServiceClient.Read(namespace, "default", clients.ReadOpts{})
+		vs, err := virtualServiceClient.Read(defaults.GlooSystem, "default", clients.ReadOpts{})
 		Expect(err).NotTo(HaveOccurred())
 		return vs.Status.GetState() == core.Status_Accepted
 	}, "15s", "0.5s").Should(BeTrue())
@@ -76,5 +73,5 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func([]byte) {})
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
-
+	cancel()
 })

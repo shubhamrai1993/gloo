@@ -79,7 +79,7 @@ var _ = Describe("Endpoint discovery works", func() {
 
 	It("can modify upstreams repeatedly", func() {
 		// Initialize a way to track the envoy config dump in order to tell when it has changed, and when the
-		// new upstream changes have been picked up.g
+		// new upstream changes have been picked up.
 		Eventually(func() int {
 			prevConfigDumpLen = findConfigDumpHttp2Count()
 			return prevConfigDumpLen
@@ -87,18 +87,16 @@ var _ = Describe("Endpoint discovery works", func() {
 
 		// We should consistently be able to modify upstreams
 		Consistently(func() error {
-			// Just modify the upstream a little
+			// Modify the upstream
 			us, err := upstreamClient.Read(defaults.GlooSystem, "default-petstore-8080", clients.ReadOpts{Ctx: ctx})
 			us.UseHttp2 = &wrappers.BoolValue{Value: !us.UseHttp2.GetValue()}
 			_, err = upstreamClient.Write(us, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 			Expect(err).NotTo(HaveOccurred())
 
-			// Pick up the change and register with the correct endpoints
+			// Check that the changed was picked up and the new config has the correct endpoints
 			checkClusterEndpoints()
 
 			return nil
 		}, "5m", "5s").Should(BeNil())
-
 	})
-
 })
