@@ -24,7 +24,7 @@ import (
 func TestE2e(t *testing.T) {
 	if os.Getenv("KUBE2E_TESTS") != "envoy" {
 		log.Warnf("This test is disabled. " +
-			"To enable, set KUBE2E_TESTS to 'gloomtls' in your env.")
+			"To enable, set KUBE2E_TESTS to 'envoy' in your env.")
 		return
 	}
 	RegisterFailHandler(Fail)
