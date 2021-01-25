@@ -2,6 +2,9 @@ package discovery_test
 
 import (
 	"context"
+	"github.com/solo-io/gloo/pkg/cliutil"
+	"github.com/solo-io/gloo/test/helpers"
+	skhelpers "github.com/solo-io/solo-kit/test/helpers"
 	"os"
 	"testing"
 
@@ -21,25 +24,29 @@ import (
 	"github.com/solo-io/go-utils/log"
 )
 
-func TestE2e(t *testing.T) {
-	if os.Getenv("KUBE2E_TESTS") != "discovery" {
-		log.Warnf("This test is disabled. " +
-			"To enable, set KUBE2E_TESTS to 'envoy' in your env.")
-		return
-	}
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "E2e Suite")
-}
-
 var (
 	ctx    context.Context
 	cancel context.CancelFunc
 	err    error
 	cfg    *rest.Config
 
+	installNamespace = "gloo-system"
 	upstreamClient       gloov1.UpstreamClient
 	virtualServiceClient gatewayv1.VirtualServiceClient
 )
+
+func TestDiscovery(t *testing.T) {
+	if os.Getenv("KUBE2E_TESTS") != "discovery" {
+		log.Warnf("This test is disabled. " +
+			"To enable, set KUBE2E_TESTS to 'envoy' in your env.")
+		return
+	}
+	skhelpers.RegisterCommonFailHandlers()
+	skhelpers.SetupLog()
+	_ = os.Remove(cliutil.GetLogsPath())
+	skhelpers.RegisterPreFailHandler(helpers.KubeDumpOnFail(GinkgoWriter, installNamespace))
+	RunSpecs(t, "Gloo mTLS Suite")
+}
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	ctx, cancel = context.WithCancel(context.Background())
