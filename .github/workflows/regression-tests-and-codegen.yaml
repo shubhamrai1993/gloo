@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-        non_testrunner_kube-e2e-test-type: ['envoy']
+        non_testrunner_kube-e2e-test-type: ['discovery']
     steps:
     - name: Cancel Previous Actions
       uses: styfle/cancel-workflow-action@0.4.1
@@ -186,7 +186,7 @@ jobs:
     - name: Setup test env
       run: |
         SETUP=${{ matrix.non_testrunner_kube-e2e-test-type }} ./ci/setup-kind.sh
-    - name: Testing - Envoy e2e tests
+    - name: Testing - Discovery e2e tests
       env:
         KUBE2E_TESTS: ${{ matrix.non_testrunner_kube-e2e-test-type }}
       run: |
@@ -197,3 +197,8 @@ jobs:
         # see what's in the cluster if we failed
         kubectl get all -A
         kubectl get configmaps -A
+    - name: Cleanup
+        env:
+          KUBE2E_TESTS: ${{ matrix.non_testrunner_kube-e2e-test-type }}
+        run: |
+          kind delete cluster

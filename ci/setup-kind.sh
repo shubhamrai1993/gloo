@@ -43,7 +43,7 @@ kubectl -n gloo-system rollout status deployment discovery --timeout=2m || true
 kubectl -n gloo-system rollout status deployment gateway-proxy --timeout=2m || true
 kubectl -n gloo-system rollout status deployment gateway --timeout=2m || true
 
-if [ "$SETUP" = "envoy" ]; then
+if [ "$SETUP" = "discovery" ]; then
   echo "Installing Hello World example"
   kubectl apply -f https://raw.githubusercontent.com/solo-io/gloo/v1.2.9/example/petstore/petstore.yaml
   glooctl add route \

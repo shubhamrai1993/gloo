@@ -1,4 +1,4 @@
-package envoy_test
+package discovery_test
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 )
 
 func TestE2e(t *testing.T) {
-	if os.Getenv("KUBE2E_TESTS") != "envoy" {
+	if os.Getenv("KUBE2E_TESTS") != "discovery" {
 		log.Warnf("This test is disabled. " +
 			"To enable, set KUBE2E_TESTS to 'envoy' in your env.")
 		return

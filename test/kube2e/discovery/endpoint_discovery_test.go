@@ -1,4 +1,4 @@
-package envoy_test
+package discovery_test
 
 import (
 	"fmt"
