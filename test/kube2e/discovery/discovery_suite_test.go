@@ -2,23 +2,23 @@ package discovery_test
 
 import (
 	"context"
-	"github.com/solo-io/gloo/pkg/cliutil"
-	"github.com/solo-io/gloo/test/helpers"
-	skhelpers "github.com/solo-io/solo-kit/test/helpers"
 	"os"
 	"testing"
 
-	"github.com/solo-io/gloo/projects/gloo/pkg/defaults"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/solo-io/gloo/pkg/cliutil"
 	gatewayv1 "github.com/solo-io/gloo/projects/gateway/pkg/api/v1"
 	gloov1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
+	"github.com/solo-io/gloo/projects/gloo/pkg/defaults"
+	"github.com/solo-io/gloo/test/helpers"
 	"github.com/solo-io/k8s-utils/kubeutils"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/factory"
 	"github.com/solo-io/solo-kit/pkg/api/v1/clients/kube"
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
+	skhelpers "github.com/solo-io/solo-kit/test/helpers"
 	"k8s.io/client-go/rest"
 
 	"github.com/solo-io/go-utils/log"
@@ -30,7 +30,7 @@ var (
 	err    error
 	cfg    *rest.Config
 
-	installNamespace = "gloo-system"
+	installNamespace     = "gloo-system"
 	upstreamClient       gloov1.UpstreamClient
 	virtualServiceClient gatewayv1.VirtualServiceClient
 )
@@ -38,17 +38,17 @@ var (
 func TestDiscovery(t *testing.T) {
 	if os.Getenv("KUBE2E_TESTS") != "discovery" {
 		log.Warnf("This test is disabled. " +
-			"To enable, set KUBE2E_TESTS to 'envoy' in your env.")
+			"To enable, set KUBE2E_TESTS to 'discovery' in your env.")
 		return
 	}
 	skhelpers.RegisterCommonFailHandlers()
 	skhelpers.SetupLog()
 	_ = os.Remove(cliutil.GetLogsPath())
 	skhelpers.RegisterPreFailHandler(helpers.KubeDumpOnFail(GinkgoWriter, installNamespace))
-	RunSpecs(t, "Gloo mTLS Suite")
+	RunSpecs(t, "Discovery Suite")
 }
 
-var _ = SynchronizedBeforeSuite(func() []byte {
+var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 	cfg, err = kubeutils.GetConfig("", "")
 	Expect(err).NotTo(HaveOccurred())
@@ -75,10 +75,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		Expect(err).NotTo(HaveOccurred())
 		return vs.Status.GetState() == core.Status_Accepted
 	}, "15s", "0.5s").Should(BeTrue())
+})
 
-	return nil
-}, func([]byte) {})
-
-var _ = SynchronizedAfterSuite(func() {}, func() {
+var _ = AfterSuite(func() {
 	cancel()
 })
