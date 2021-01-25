@@ -41,6 +41,7 @@ to be usable by Gloo. (plugins currently need to be compiled into Gloo)
 "accessLoggingService": .als.options.gloo.solo.io.AccessLoggingService
 "extensions": .gloo.solo.io.Extensions
 "perConnectionBufferLimitBytes": .google.protobuf.UInt32Value
+"tlsInspector": .tls_inspector.options.gloo.solo.io.TlsInspector
 
 ```
 
@@ -49,6 +50,7 @@ to be usable by Gloo. (plugins currently need to be compiled into Gloo)
 | `accessLoggingService` | [.als.options.gloo.solo.io.AccessLoggingService](../options/als/als.proto.sk/#accessloggingservice) |  |
 | `extensions` | [.gloo.solo.io.Extensions](../extensions.proto.sk/#extensions) | Extensions will be passed along from Listeners, Gateways, VirtualServices, Routes, and Route tables to the underlying Proxy, making them useful for controllers, validation tools, etc. which interact with kubernetes yaml. Some sample use cases: * controllers, deployment pipelines, helm charts, etc. which wish to use extensions as a kind of opaque metadata. * In the future, Gloo may support gRPC-based plugins which communicate with the Gloo translator out-of-process. Opaque Extensions enables development of out-of-process plugins without requiring recompiling & redeploying Gloo's API. |
 | `perConnectionBufferLimitBytes` | [.google.protobuf.UInt32Value](https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/u-int-32-value) | Soft limit on size of the listener's new connection read and write buffers. If unspecified, defaults to 1MiB For more info, check out the [Envoy docs](https://www.envoyproxy.io/docs/envoy/v1.14.1/api-v2/api/v2/listener.proto). |
+| `tlsInspector` | [.tls_inspector.options.gloo.solo.io.TlsInspector](../options/tls_inspector/tls_inspector.proto.sk/#tlsinspector) | TLS Inspector listener filter allows detecting whether the transport appears to be TLS or plaintext, and if it is TLS, it detects the Server Name Indication and/or Application-Layer Protocol Negotiation from the client. For more info, check out the [envoy docs](https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/listener_filters/tls_inspector). |
 
 
 
