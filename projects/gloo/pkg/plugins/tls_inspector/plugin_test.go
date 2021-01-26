@@ -12,7 +12,7 @@ import (
 )
 
 var _ = Describe("Plugin", func() {
-	Context("tls inspector", func() {
+	Context("tls inspector for http", func() {
 
 		var (
 			params plugins.Params
@@ -23,7 +23,11 @@ var _ = Describe("Plugin", func() {
 		})
 
 		It("tls inspector is added", func() {
+			hl := &v1.HttpListener{}
 			in := &v1.Listener{
+				ListenerType: &v1.Listener_HttpListener{
+					HttpListener: hl,
+				},
 				SslConfigurations: []*v1.SslConfig{},
 			}
 
@@ -50,7 +54,77 @@ var _ = Describe("Plugin", func() {
 
 		It("tls inspector is ignored", func() {
 
-			in := &v1.Listener{}
+			hl := &v1.HttpListener{}
+			in := &v1.Listener{
+				ListenerType: &v1.Listener_HttpListener{
+					HttpListener: hl,
+				},
+			}
+
+			filters := []*envoy_config_listener_v3.Filter{{}}
+
+			outl := &envoy_config_listener_v3.Listener{
+				FilterChains: []*envoy_config_listener_v3.FilterChain{{
+					Filters: filters,
+				}},
+			}
+
+			p := NewPlugin()
+			err := p.ProcessListener(params, in, outl)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(outl.ListenerFilters).To(HaveLen(0))
+		})
+	})
+
+	Context("tls inspector for tcp", func() {
+
+		var (
+			params plugins.Params
+		)
+
+		BeforeEach(func() {
+			params = plugins.Params{}
+		})
+
+		It("tls inspector is added", func() {
+			tl := &v1.TcpListener{}
+			in := &v1.Listener{
+				ListenerType: &v1.Listener_TcpListener{
+					TcpListener: tl,
+				},
+				SslConfigurations: []*v1.SslConfig{},
+			}
+
+			filters := []*envoy_config_listener_v3.Filter{{}}
+
+			outl := &envoy_config_listener_v3.Listener{
+				FilterChains: []*envoy_config_listener_v3.FilterChain{{
+					Filters: filters,
+				}},
+			}
+
+			p := NewPlugin()
+			err := p.ProcessListener(params, in, outl)
+			Expect(err).NotTo(HaveOccurred())
+
+			configEnvoy := &envoy_tls_inspector.TlsInspector{}
+			config, err := utils.MessageToAny(configEnvoy)
+
+			Expect(outl.ListenerFilters).To(HaveLen(1))
+			Expect(outl.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
+			Expect(outl.ListenerFilters[0].GetTypedConfig()).To(Equal(config))
+
+		})
+
+		It("tls inspector is ignored", func() {
+
+			tl := &v1.TcpListener{}
+			in := &v1.Listener{
+				ListenerType: &v1.Listener_TcpListener{
+					TcpListener: tl,
+				},
+			}
 
 			filters := []*envoy_config_listener_v3.Filter{{}}
 
