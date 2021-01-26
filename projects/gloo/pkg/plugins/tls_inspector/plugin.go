@@ -31,8 +31,7 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 	if in.GetOptions() == nil {
 		return nil
 	}
-	tlsSettings := in.GetOptions()
-	if tlsSettings.TlsInspector == nil {
+	if in.GetOptions().TlsInspector == nil {
 		for _, f := range out.GetFilterChains() {
 			if f.FilterChainMatch != nil {
 				f.FilterChainMatch.TransportProtocol = ""
@@ -42,10 +41,6 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 		for _, f := range out.GetFilterChains() {
 			if f.FilterChainMatch != nil {
 				f.FilterChainMatch.TransportProtocol = TLSTransportProtocol
-			} else {
-				f.FilterChainMatch = &envoy_config_listener_v3.FilterChainMatch{
-					TransportProtocol: TLSTransportProtocol,
-				}
 			}
 		}
 	}
