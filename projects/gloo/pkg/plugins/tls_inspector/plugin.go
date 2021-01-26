@@ -6,7 +6,7 @@ import (
 	v1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins"
 	"github.com/solo-io/gloo/projects/gloo/pkg/utils"
-	//"github.com/solo-io/gloo/projects/gloo/pkg/api/v1/options/tls_inspector"
+
 	envoy_tls_inspector "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 )
 
@@ -32,11 +32,7 @@ func (p *plugin) Init(params plugins.InitParams) error {
 }
 
 func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *envoy_config_listener_v3.Listener) error {
-	if in.GetOptions() == nil {
-		return nil
-	}
-
-	if in.GetOptions().TlsInspector != nil {
+	if in.GetSslConfigurations() != nil {
 		configEnvoy := &envoy_tls_inspector.TlsInspector{}
 		msg, err := utils.MessageToAny(configEnvoy)
 		if err == nil {

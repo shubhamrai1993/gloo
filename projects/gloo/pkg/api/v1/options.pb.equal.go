@@ -76,16 +76,6 @@ func (m *ListenerOptions) Equal(that interface{}) bool {
 		}
 	}
 
-	if h, ok := interface{}(m.GetTlsInspector()).(equality.Equalizer); ok {
-		if !h.Equal(target.GetTlsInspector()) {
-			return false
-		}
-	} else {
-		if !proto.Equal(m.GetTlsInspector(), target.GetTlsInspector()) {
-			return false
-		}
-	}
-
 	return true
 }
 

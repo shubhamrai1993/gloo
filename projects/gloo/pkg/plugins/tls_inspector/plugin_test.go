@@ -7,15 +7,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
-	"github.com/solo-io/gloo/projects/gloo/pkg/api/v1/options/tls_inspector"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins"
 	"github.com/solo-io/gloo/projects/gloo/pkg/utils"
 )
 
 var _ = Describe("Plugin", func() {
-	var (
-		tlsConfig *tls_inspector.TlsInspector
-	)
+	var ()
 	Context("tls inspector", func() {
 
 		var (
@@ -23,20 +20,12 @@ var _ = Describe("Plugin", func() {
 		)
 
 		BeforeEach(func() {
-			tlsConfig = &tls_inspector.TlsInspector{}
 			params = plugins.Params{}
 		})
 
 		It("tls inspector is added", func() {
-			hl := &v1.HttpListener{}
-
 			in := &v1.Listener{
-				ListenerType: &v1.Listener_HttpListener{
-					HttpListener: hl,
-				},
-				Options: &v1.ListenerOptions{
-					TlsInspector: tlsConfig,
-				},
+				SslConfigurations: []*v1.SslConfig{},
 			}
 
 			filters := []*envoy_config_listener_v3.Filter{{}}
@@ -63,14 +52,8 @@ var _ = Describe("Plugin", func() {
 		})
 
 		It("tls inspector is ignored", func() {
-			hl := &v1.HttpListener{}
 
-			in := &v1.Listener{
-				ListenerType: &v1.Listener_HttpListener{
-					HttpListener: hl,
-				},
-				Options: &v1.ListenerOptions{},
-			}
+			in := &v1.Listener{}
 
 			filters := []*envoy_config_listener_v3.Filter{{}}
 

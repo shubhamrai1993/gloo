@@ -13,7 +13,6 @@ import "github.com/solo-io/gloo/projects/gloo/api/v1/options/cors/cors.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/rest/rest.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/grpc/grpc.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/als/als.proto";
-import "github.com/solo-io/gloo/projects/gloo/api/v1/options/tls_inspector/tls_inspector.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/grpc_web/grpc_web.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/grpc_json/grpc_json.proto";
 import "github.com/solo-io/gloo/projects/gloo/api/v1/options/hcm/hcm.proto";
@@ -68,11 +67,6 @@ message ListenerOptions {
     // Soft limit on size of the listener's new connection read and write buffers. If unspecified, defaults to 1MiB
     // For more info, check out the [Envoy docs](https://www.envoyproxy.io/docs/envoy/v1.14.1/api-v2/api/v2/listener.proto)
     google.protobuf.UInt32Value per_connection_buffer_limit_bytes = 3;
-
-    // TLS Inspector listener filter allows detecting whether the transport appears to be TLS or plaintext, and if it
-    // is TLS, it detects the Server Name Indication and/or Application-Layer Protocol Negotiation from the client.
-    // For more info, check out the [envoy docs](https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/listener_filters/tls_inspector)
-    tls_inspector.options.gloo.solo.io.TlsInspector tls_inspector = 4;
 }
 
 // Optional, feature-specific configuration that lives on http listeners
