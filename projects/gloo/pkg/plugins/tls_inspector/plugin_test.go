@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Plugin", func() {
-	var ()
 	Context("tls inspector", func() {
 
 		var (
@@ -43,11 +42,9 @@ var _ = Describe("Plugin", func() {
 			configEnvoy := &envoy_tls_inspector.TlsInspector{}
 			config, err := utils.MessageToAny(configEnvoy)
 
-			for _, f := range outl.GetListenerFilters() {
-				if f.Name == wellknown.TlsInspector {
-					Expect(f.ConfigType).To(Equal(config))
-				}
-			}
+			Expect(outl.ListenerFilters).To(HaveLen(1))
+			Expect(outl.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
+			Expect(outl.ListenerFilters[0].GetTypedConfig()).To(Equal(config))
 
 		})
 
@@ -67,14 +64,7 @@ var _ = Describe("Plugin", func() {
 			err := p.ProcessListener(params, in, outl)
 			Expect(err).NotTo(HaveOccurred())
 
-			configEnvoy := &envoy_tls_inspector.TlsInspector{}
-			config, err := utils.MessageToAny(configEnvoy)
-
-			for _, f := range outl.GetListenerFilters() {
-				if f.Name == wellknown.TlsInspector {
-					Expect(f.ConfigType).To(Equal(config))
-				}
-			}
+			Expect(outl.ListenerFilters).To(HaveLen(0))
 		})
 	})
 })
