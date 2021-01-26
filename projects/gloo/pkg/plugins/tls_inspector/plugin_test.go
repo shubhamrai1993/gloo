@@ -2,14 +2,14 @@ package tls_inspector
 
 import (
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_tls_inspector "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
 	"github.com/solo-io/gloo/projects/gloo/pkg/api/v1/options/tls_inspector"
 	"github.com/solo-io/gloo/projects/gloo/pkg/plugins"
-	translatorutil "github.com/solo-io/gloo/projects/gloo/pkg/translator"
+	"github.com/solo-io/gloo/projects/gloo/pkg/utils"
 )
 
 var _ = Describe("Plugin", func() {
@@ -39,9 +39,7 @@ var _ = Describe("Plugin", func() {
 				},
 			}
 
-			filters := []*envoy_config_listener_v3.Filter{{
-				Name: wellknown.HTTPConnectionManager,
-			}}
+			filters := []*envoy_config_listener_v3.Filter{{}}
 
 			outl := &envoy_config_listener_v3.Listener{
 				FilterChains: []*envoy_config_listener_v3.FilterChain{{
@@ -53,10 +51,14 @@ var _ = Describe("Plugin", func() {
 			err := p.ProcessListener(params, in, outl)
 			Expect(err).NotTo(HaveOccurred())
 
-			var cfg envoyhttp.HttpConnectionManager
-			err = translatorutil.ParseTypedConfig(filters[0], &cfg)
-			Expect(err).NotTo(HaveOccurred())
+			configEnvoy := &envoy_tls_inspector.TlsInspector{}
+			config, err := utils.MessageToAny(configEnvoy)
 
+			for _, f := range outl.GetListenerFilters() {
+				if f.Name == wellknown.TlsInspector {
+					Expect(f.ConfigType).To(Equal(config))
+				}
+			}
 
 		})
 
@@ -70,11 +72,11 @@ var _ = Describe("Plugin", func() {
 				Options: &v1.ListenerOptions{},
 			}
 
-			filterChainMatch := &envoy_config_listener_v3.FilterChainMatch{}
+			filters := []*envoy_config_listener_v3.Filter{{}}
 
 			outl := &envoy_config_listener_v3.Listener{
 				FilterChains: []*envoy_config_listener_v3.FilterChain{{
-					FilterChainMatch: filterChainMatch,
+					Filters: filters,
 				}},
 			}
 
@@ -82,8 +84,13 @@ var _ = Describe("Plugin", func() {
 			err := p.ProcessListener(params, in, outl)
 			Expect(err).NotTo(HaveOccurred())
 
-			for _, f := range outl.GetFilterChains() {
-				Expect(f.FilterChainMatch.TransportProtocol).To(Equal(""))
+			configEnvoy := &envoy_tls_inspector.TlsInspector{}
+			config, err := utils.MessageToAny(configEnvoy)
+
+			for _, f := range outl.GetListenerFilters() {
+				if f.Name == wellknown.TlsInspector {
+					Expect(f.ConfigType).To(Equal(config))
+				}
 			}
 		})
 	})
