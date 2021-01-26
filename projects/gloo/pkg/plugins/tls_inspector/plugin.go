@@ -50,26 +50,6 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 		if in.GetSslConfigurations() != nil {
 			out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{TLSInspector}, out.ListenerFilters...)
 		}
-	case *v1.Listener_TcpListener:
-		// Only focused on Tcp listeners, so return otherwise
-		tcpListener := in.GetTcpListener()
-		if tcpListener == nil {
-			return nil
-		}
-
-		var sniMatch bool
-		for _, host := range tcpListener.GetTcpHosts() {
-			if len(host.GetSslConfig().GetSniDomains()) > 0 {
-				sniMatch = true
-			}
-		}
-
-		// If there is a SNI matches, enable TLS inspector
-		if sniMatch || in.GetSslConfigurations() != nil {
-			out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{TLSInspector}, out.ListenerFilters...)
-		}
-
-		return nil
 	}
 
 	return nil
