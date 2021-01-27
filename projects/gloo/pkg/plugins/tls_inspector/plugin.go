@@ -64,15 +64,17 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 			}
 		}
 
-		// tcp plugin handles case when there is a forward SNI cluster, and no SNI matches, prepend the TLS inspector manually.
+		// If there is a forward SNI cluster, and no SNI matches, prepend the TLS inspector manually.
 		if sniCluster && !sniMatch {
-			return nil
-		}
-
-		// for other cases, add TLS inspector
-		if hostHasConfig || in.GetSslConfigurations() != nil {
+			out.ListenerFilters = append(
+				[]*envoy_config_listener_v3.ListenerFilter{{Name: wellknown.TlsInspector}},
+				out.ListenerFilters...,
+			)
+		} else if hostHasConfig || in.GetSslConfigurations() != nil {
+			// for other cases, add TLS inspector
 			out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{tlsInspector}, out.ListenerFilters...)
 		}
+
 	}
 
 	return nil

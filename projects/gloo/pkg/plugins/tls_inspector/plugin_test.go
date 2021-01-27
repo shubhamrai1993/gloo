@@ -4,6 +4,7 @@ import (
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_inspector "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes/empty"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "github.com/solo-io/gloo/projects/gloo/pkg/api/v1"
@@ -170,6 +171,35 @@ var _ = Describe("Plugin", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(outl.ListenerFilters).To(HaveLen(0))
+		})
+
+		It("will prepend the TlsInspector when NO ServerName match present", func() {
+			snap := &v1.ApiSnapshot{}
+			out := &envoy_config_listener_v3.Listener{}
+			tcpListener := &v1.TcpListener{
+				TcpHosts: []*v1.TcpHost{
+					{
+						Name: "one",
+						Destination: &v1.TcpHost_TcpAction{
+							Destination: &v1.TcpHost_TcpAction_ForwardSniClusterName{
+								ForwardSniClusterName: &empty.Empty{},
+							},
+						},
+					},
+				},
+			}
+			listener := &v1.Listener{
+				ListenerType: &v1.Listener_TcpListener{
+					TcpListener: tcpListener,
+				},
+			}
+
+			p := NewPlugin()
+			err := p.ProcessListener(plugins.Params{Snapshot: snap}, listener, out)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out.ListenerFilters).To(HaveLen(1))
+			Expect(out.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
+			Expect(out.ListenerFilters[0].GetTypedConfig()).To(BeNil())
 		})
 	})
 })
