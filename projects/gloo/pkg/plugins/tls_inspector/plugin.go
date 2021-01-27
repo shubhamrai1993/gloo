@@ -9,9 +9,7 @@ import (
 	"github.com/solo-io/gloo/projects/gloo/pkg/utils"
 )
 
-// filter should be called after routing decision has been made
 var (
-	pluginStage          = plugins.DuringStage(plugins.RouteStage)
 	TLSTransportProtocol = "tls"
 )
 

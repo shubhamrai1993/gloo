@@ -200,6 +200,17 @@ var _ = Describe("Translator", func() {
 									},
 								},
 							},
+							SslConfig: &v1.SslConfig{
+								SslSecrets: &v1.SslConfig_SslFiles{
+									SslFiles: &v1.SSLFiles{
+										TlsCert: "cert1",
+										TlsKey:  "key1",
+									},
+								},
+								SniDomains: []string{
+									"sni1",
+								},
+							},
 						},
 					},
 				},
@@ -2049,6 +2060,7 @@ var _ = Describe("Translator", func() {
 			Expect(ParseTypedConfig(tcpFilter, &typedCfg)).NotTo(HaveOccurred())
 			clusterSpec := typedCfg.GetCluster()
 			Expect(clusterSpec).To(Equal("test_gloo-system"))
+			Expect(listener.GetListenerFilters()[0].GetName()).To(Equal(wellknown.TlsInspector))
 		})
 	})
 	Context("Ssl - cluster", func() {
