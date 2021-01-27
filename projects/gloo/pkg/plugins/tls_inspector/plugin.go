@@ -36,7 +36,7 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 	if err != nil {
 		return nil
 	}
-	TLSInspector := &envoy_config_listener_v3.ListenerFilter{
+	tlsInspector := &envoy_config_listener_v3.ListenerFilter{
 		Name: wellknown.TlsInspector,
 		ConfigType: &envoy_config_listener_v3.ListenerFilter_TypedConfig{
 			TypedConfig: msg,
@@ -48,7 +48,7 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 	case *v1.Listener_HttpListener:
 		// automatically add tls inspector when ssl is enabled
 		if in.GetSslConfigurations() != nil {
-			out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{TLSInspector}, out.ListenerFilters...)
+			out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{tlsInspector}, out.ListenerFilters...)
 		}
 	}
 
