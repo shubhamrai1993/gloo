@@ -71,6 +71,29 @@ var _ = Describe("Zipkin config loading", func() {
 		}
 	}
 
+	It("should send trace msgs to the zipkin server", func() {
+		err := envoyInstance.RunWithConfigFile(int(defaults.HttpPort), "./envoyconfigs/zipkin-envoy-conf.yaml")
+		Expect(err).NotTo(HaveOccurred())
+
+		// Start a dummy server listening on 9411 for Zipkin requests
+		apiHit := make(chan bool, 1)
+		zipkinHandler := http.NewServeMux()
+		zipkinHandler.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			Expect(r.URL.Path).To(Equal("/api/v2/spans")) // Zipkin json collector API
+			fmt.Fprintf(w, "Dummy Zipkin Collector received request on - %q", html.EscapeString(r.URL.Path))
+			apiHit <- true
+		}))
+		startZipkinServer(":9411", zipkinHandler)
+
+		testRequest := createRequestWithTracingEnabled("127.0.0.1", 11082)
+		Eventually(testRequest, 15, 1).Should(ContainSubstring(`<title>Envoy Admin</title>`))
+
+		truez := true
+		Eventually(apiHit, 5*time.Second).Should(Receive(&truez))
+
+		stopZipkinServer()
+	})
+
 	Context("dynamic tracing with collector upstream ref", func() {
 
 		var (
@@ -101,7 +124,7 @@ var _ = Describe("Zipkin config loading", func() {
 			}, "10s", "0.1s").Should(HaveLen(2), "Gateways should be present")
 
 			// run envoy
-			err = envoyInstance.RunWithRoleAndRestXds(writeNamespace+"~"+gatewaydefaults.GatewayProxyName, testClients.GlooPort, testClients.RestXdsPort)
+			err = envoyInstance.RunWithRole(writeNamespace+"~"+gatewaydefaults.GatewayProxyName, testClients.GlooPort)
 			Expect(err).NotTo(HaveOccurred())
 
 			// create test upstream
