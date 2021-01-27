@@ -34,7 +34,7 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 	configEnvoy := &envoy_tls_inspector.TlsInspector{}
 	msg, err := utils.MessageToAny(configEnvoy)
 	if err != nil {
-		return nil
+		return err
 	}
 	tlsInspector := &envoy_config_listener_v3.ListenerFilter{
 		Name: wellknown.TlsInspector,
@@ -43,11 +43,34 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 		},
 	}
 
-	// Only focused on Http listeners, tcp plugin will handle tcp case
 	switch in.GetListenerType().(type) {
 	case *v1.Listener_HttpListener:
 		// automatically add tls inspector when ssl is enabled
 		if in.GetSslConfigurations() != nil {
+			out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{tlsInspector}, out.ListenerFilters...)
+		}
+	case *v1.Listener_TcpListener:
+		tcpListener := in.GetTcpListener()
+		var hostHasConfig, sniCluster, sniMatch bool
+		for _, host := range tcpListener.GetTcpHosts() {
+			if host.GetSslConfig() != nil {
+				hostHasConfig = true
+			}
+			if len(host.GetSslConfig().GetSniDomains()) > 0 {
+				sniMatch = true
+			}
+			if host.GetDestination().GetForwardSniClusterName() != nil {
+				sniCluster = true
+			}
+		}
+
+		// tcp plugin handles case when there is a forward SNI cluster, and no SNI matches, prepend the TLS inspector manually.
+		if sniCluster && !sniMatch {
+			return nil
+		}
+
+		// for other cases, add TLS inspector
+		if hostHasConfig || in.GetSslConfigurations() != nil {
 			out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{tlsInspector}, out.ListenerFilters...)
 		}
 	}
