@@ -1,8 +1,10 @@
 package e2e_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -520,7 +522,7 @@ var _ = Describe("Gateway", func() {
 					v1helpers.TestUpstreamReachable(defaults.HttpsPort, tu, &cert)
 				}
 
-				It("should work with ssl", func() {
+				FIt("should work with ssl", func() {
 
 					secret := &gloov1.Secret{
 						Metadata: &core.Metadata{
@@ -553,6 +555,11 @@ var _ = Describe("Gateway", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					TestUpstreamSslReachable()
+					adminUrl := fmt.Sprintf("http://%s:%d/config_dump",
+						envoyInstance.LocalAddr(),
+						envoyInstance.AdminPort)
+					config := getEnvoyConfig(adminUrl)
+					Expect(config).To(MatchRegexp("tls_inspector"))
 				})
 			})
 		})
@@ -621,4 +628,23 @@ func getNonSSLListener(proxy *gloov1.Proxy) *gloov1.Listener {
 		}
 	}
 	return nil
+}
+
+func getEnvoyConfig(adminUrl string) string {
+	By("Get config")
+	envoyConfig := ""
+	Eventually(func() error {
+		r, err := http.Get(adminUrl)
+		if err != nil {
+			return err
+		}
+		p := new(bytes.Buffer)
+		if _, err := io.Copy(p, r.Body); err != nil {
+			return err
+		}
+		defer r.Body.Close()
+		envoyConfig = p.String()
+		return nil
+	}, "10s", ".1s").Should(BeNil())
+	return envoyConfig
 }
