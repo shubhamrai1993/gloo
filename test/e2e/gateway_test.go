@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/empty"
+
 	"github.com/solo-io/gloo/projects/gloo/pkg/translator"
 
 	gatewaydefaults "github.com/solo-io/gloo/projects/gateway/pkg/defaults"
@@ -564,6 +566,159 @@ var _ = Describe("Gateway", func() {
 			})
 		})
 	})
+
+	FDescribe("tcp", func() {
+
+		Context("ssl", func() {
+
+			var (
+				envoyInstance  *services.EnvoyInstance
+				tu             *v1helpers.TestUpstream
+				defaultGateway *gatewayv1.Gateway
+			)
+
+			BeforeEach(func() {
+				ctx, cancel = context.WithCancel(context.Background())
+				defaults.HttpPort = services.NextBindPort()
+				defaults.HttpsPort = services.NextBindPort()
+				validationPort := services.AllocateGlooPort()
+
+				writeNamespace = "gloo-system"
+				ro := &services.RunOptions{
+					NsToWrite: writeNamespace,
+					NsToWatch: []string{"default", writeNamespace},
+					WhatToRun: services.What{
+						DisableFds: true,
+						DisableUds: true,
+					},
+					ValidationPort: validationPort,
+					Settings: &gloov1.Settings{
+						Gateway: &gloov1.GatewayOptions{
+							Validation: &gloov1.GatewayOptions_ValidationOptions{
+								ProxyValidationServerAddr: fmt.Sprintf("127.0.0.1:%v", validationPort),
+							},
+						},
+					},
+				}
+
+				testClients = services.RunGlooGatewayUdsFds(ctx, ro)
+
+				defaultGateway = gatewaydefaults.DefaultTcpGateway(writeNamespace)
+				defaultSslGateway := gatewaydefaults.DefaultTcpSslGateway(writeNamespace)
+
+				_, err := testClients.GatewayClient.Write(defaultGateway, clients.WriteOpts{})
+				Expect(err).NotTo(HaveOccurred(), "Should be able to write default gateways")
+				_, err = testClients.GatewayClient.Write(defaultSslGateway, clients.WriteOpts{})
+				Expect(err).NotTo(HaveOccurred(), "Should be able to write default ssl gateways")
+
+				// wait for the two gateways to be created.
+				Eventually(func() (gatewayv1.GatewayList, error) {
+					return testClients.GatewayClient.List(writeNamespace, clients.ListOpts{})
+				}, "10s", "0.1s").Should(HaveLen(2), "Gateways should be present")
+
+				envoyInstance, err = envoyFactory.NewEnvoyInstance()
+				Expect(err).NotTo(HaveOccurred())
+
+				tu = v1helpers.NewTestHttpUpstream(ctx, envoyInstance.LocalAddr())
+
+				_, err = testClients.UpstreamClient.Write(tu.Upstream, clients.WriteOpts{})
+				Expect(err).NotTo(HaveOccurred())
+				err = envoyInstance.RunWithRoleAndRestXds(writeNamespace+"~"+gatewaydefaults.GatewayProxyName, testClients.GlooPort, testClients.RestXdsPort)
+				Expect(err).NotTo(HaveOccurred())
+				// Check that the new instance of envoy is running
+				request, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d", envoyInstance.AdminPort), nil)
+				Expect(err).NotTo(HaveOccurred())
+				client := &http.Client{}
+				Eventually(func() (int, error) {
+					response, err := client.Do(request)
+					if response == nil {
+						return 0, err
+					}
+					return response.StatusCode, err
+				}, 5*time.Second, 1*time.Second).Should(Equal(200))
+			})
+
+			AfterEach(func() {
+				cancel()
+
+				if envoyInstance != nil {
+					_ = envoyInstance.Clean()
+				}
+				// Wait till envoy is completely cleaned up
+				request, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d", envoyInstance.AdminPort), nil)
+				Expect(err).NotTo(HaveOccurred())
+				client := &http.Client{}
+				Eventually(func() error {
+					_, err := client.Do(request)
+					return err
+				}, 5*time.Second, 1*time.Second).Should(HaveOccurred())
+			})
+
+			It("should work with ssl", func() {
+
+				secret := &gloov1.Secret{
+					Metadata: &core.Metadata{
+						Name:      "secret",
+						Namespace: "default",
+					},
+					Kind: &gloov1.Secret_Tls{
+						Tls: &gloov1.TlsSecret{
+							CertChain:  gloohelpers.Certificate(),
+							PrivateKey: gloohelpers.PrivateKey(),
+						},
+					},
+				}
+				createdSecret, err := testClients.SecretClient.Write(secret, clients.WriteOpts{})
+				Expect(err).NotTo(HaveOccurred())
+
+				up := tu.Upstream
+				host := &gloov1.TcpHost{
+					Name: "one",
+					Destination: &gloov1.TcpHost_TcpAction{
+						Destination: &gloov1.TcpHost_TcpAction_ForwardSniClusterName{
+							ForwardSniClusterName: &empty.Empty{},
+						},
+					},
+					SslConfig: &gloov1.SslConfig{
+						// Use the translated cluster name as the SNI domain so envoy uses that in the cluster field
+						SniDomains: []string{translator.UpstreamToClusterName(up.Metadata.Ref())},
+						SslSecrets: &gloov1.SslConfig_SecretRef{
+							SecretRef: &core.ResourceRef{
+								Name:      createdSecret.Metadata.Name,
+								Namespace: createdSecret.Metadata.Namespace,
+							},
+						},
+						// Force http1, as defaulting to 2 fails. The service in question is an http1 service, but as this
+						// is a standard TCP connection envoy does not know that, so it must rely on ALPN to figure that out.
+						// However, by default the ALPN is set to []string{"h2", "http/1.1"} which favors http2.
+						AlpnProtocols: []string{"http/1.1"},
+					},
+				}
+
+				gatewayClient := testClients.GatewayClient
+				gw, err := gatewayClient.List(writeNamespace, clients.ListOpts{})
+				Expect(err).NotTo(HaveOccurred())
+
+				for _, g := range gw {
+					tcpGateway := g.GetTcpGateway()
+					if tcpGateway != nil {
+						tcpGateway.TcpHosts = []*gloov1.TcpHost{host}
+					}
+
+					_, err := gatewayClient.Write(g, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				adminUrl := fmt.Sprintf("http://%s:%d/config_dump",
+					envoyInstance.LocalAddr(),
+					envoyInstance.AdminPort)
+				config := getEnvoyConfig(adminUrl)
+				Expect(config).To(MatchRegexp("tls_inspector"))
+			})
+		})
+
+	})
+
 })
 
 func getTrivialVirtualServiceForUpstream(ns string, upstream *core.ResourceRef) *gatewayv1.VirtualService {
