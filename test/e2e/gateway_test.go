@@ -522,7 +522,7 @@ var _ = Describe("Gateway", func() {
 					v1helpers.TestUpstreamReachable(defaults.HttpsPort, tu, &cert)
 				}
 
-				FIt("should work with ssl", func() {
+				It("should work with ssl", func() {
 
 					secret := &gloov1.Secret{
 						Metadata: &core.Metadata{
