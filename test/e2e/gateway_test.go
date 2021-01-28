@@ -668,7 +668,7 @@ var _ = Describe("Gateway", func() {
 						},
 					},
 				}
-				createdSecret, err := testClients.SecretClient.Write(secret, clients.WriteOpts{})
+				createdSecret, err := testClients.SecretClient.Write(secret, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 				Expect(err).NotTo(HaveOccurred())
 
 				up := tu.Upstream
