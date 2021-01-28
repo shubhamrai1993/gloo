@@ -567,7 +567,7 @@ var _ = Describe("Gateway", func() {
 		})
 	})
 
-	FDescribe("tcp", func() {
+	Describe("tcp", func() {
 
 		Context("ssl", func() {
 
