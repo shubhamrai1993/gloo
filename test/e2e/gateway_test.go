@@ -43,14 +43,20 @@ var _ = Describe("Gateway", func() {
 		writeNamespace string
 	)
 
+	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+		defaults.HttpPort = services.NextBindPort()
+		defaults.HttpsPort = services.NextBindPort()
+	})
+
+	AfterEach(func() {
+		cancel()
+	})
+
 	Describe("in memory", func() {
 
 		BeforeEach(func() {
-			ctx, cancel = context.WithCancel(context.Background())
-			defaults.HttpPort = services.NextBindPort()
-			defaults.HttpsPort = services.NextBindPort()
 			validationPort := services.AllocateGlooPort()
-
 			writeNamespace = "gloo-system"
 			ro := &services.RunOptions{
 				NsToWrite: writeNamespace,
@@ -77,10 +83,6 @@ var _ = Describe("Gateway", func() {
 			Eventually(func() (gatewayv1.GatewayList, error) {
 				return testClients.GatewayClient.List(writeNamespace, clients.ListOpts{})
 			}, "10s", "0.1s").Should(HaveLen(2), "Gateways should be present")
-		})
-
-		AfterEach(func() {
-			cancel()
 		})
 
 		It("should disable grpc web filter", func() {
@@ -325,7 +327,6 @@ var _ = Describe("Gateway", func() {
 			}
 
 			BeforeEach(func() {
-				ctx, cancel = context.WithCancel(context.Background())
 				var err error
 				envoyInstance, err = envoyFactory.NewEnvoyInstance()
 				Expect(err).NotTo(HaveOccurred())
@@ -578,9 +579,6 @@ var _ = Describe("Gateway", func() {
 			)
 
 			BeforeEach(func() {
-				ctx, cancel = context.WithCancel(context.Background())
-				defaults.HttpPort = services.NextBindPort()
-				defaults.HttpsPort = services.NextBindPort()
 				validationPort := services.AllocateGlooPort()
 
 				writeNamespace = "gloo-system"
@@ -639,8 +637,6 @@ var _ = Describe("Gateway", func() {
 			})
 
 			AfterEach(func() {
-				cancel()
-
 				if envoyInstance != nil {
 					_ = envoyInstance.Clean()
 				}
