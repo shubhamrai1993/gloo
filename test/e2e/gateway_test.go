@@ -688,13 +688,10 @@ var _ = Describe("Gateway", func() {
 								Namespace: createdSecret.Metadata.Namespace,
 							},
 						},
-						// Force http1, as defaulting to 2 fails. The service in question is an http1 service, but as this
-						// is a standard TCP connection envoy does not know that, so it must rely on ALPN to figure that out.
-						// However, by default the ALPN is set to []string{"h2", "http/1.1"} which favors http2.
-						AlpnProtocols: []string{"http/1.1"},
 					},
 				}
 
+				// Update gateway with tcp hosts
 				gatewayClient := testClients.GatewayClient
 				gw, err := gatewayClient.List(writeNamespace, clients.ListOpts{})
 				Expect(err).NotTo(HaveOccurred())
@@ -709,6 +706,7 @@ var _ = Describe("Gateway", func() {
 					Expect(err).NotTo(HaveOccurred())
 				}
 
+				// Check tls inspector is correctly configured
 				adminUrl := fmt.Sprintf("http://%s:%d/config_dump",
 					envoyInstance.LocalAddr(),
 					envoyInstance.AdminPort)
