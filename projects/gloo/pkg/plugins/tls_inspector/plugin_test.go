@@ -118,9 +118,7 @@ var _ = Describe("Plugin", func() {
 		})
 
 		It("Tcp Host Ssl Config is set, tls inspector is added", func() {
-			thost := &v1.TcpHost{
-				SslConfig: &v1.SslConfig{},
-			}
+			thost := &v1.TcpHost{}
 			tl := &v1.TcpListener{
 				TcpHosts: []*v1.TcpHost{thost},
 			}
@@ -128,6 +126,7 @@ var _ = Describe("Plugin", func() {
 				ListenerType: &v1.Listener_TcpListener{
 					TcpListener: tl,
 				},
+				SslConfigurations: []*v1.SslConfig{},
 			}
 
 			filters := []*envoy_config_listener_v3.Filter{{}}
@@ -200,6 +199,36 @@ var _ = Describe("Plugin", func() {
 			Expect(out.ListenerFilters).To(HaveLen(1))
 			Expect(out.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
 			Expect(out.ListenerFilters[0].GetTypedConfig()).To(BeNil())
+		})
+
+		It("will not prepend the TlsInspector when ServerName match present", func() {
+			snap := &v1.ApiSnapshot{}
+			out := &envoy_config_listener_v3.Listener{}
+			tcpListener := &v1.TcpListener{
+				TcpHosts: []*v1.TcpHost{
+					{
+						Name: "one",
+						Destination: &v1.TcpHost_TcpAction{
+							Destination: &v1.TcpHost_TcpAction_ForwardSniClusterName{
+								ForwardSniClusterName: &empty.Empty{},
+							},
+						},
+						SslConfig: &v1.SslConfig{
+							SniDomains: []string{"hello.world"},
+						},
+					},
+				},
+			}
+			listener := &v1.Listener{
+				ListenerType: &v1.Listener_TcpListener{
+					TcpListener: tcpListener,
+				},
+			}
+
+			p := NewPlugin()
+			err := p.ProcessListener(plugins.Params{Snapshot: snap}, listener, out)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out.ListenerFilters).To(HaveLen(0))
 		})
 	})
 })
