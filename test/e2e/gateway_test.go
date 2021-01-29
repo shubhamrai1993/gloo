@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/empty"
-
 	"github.com/solo-io/gloo/projects/gloo/pkg/translator"
 
 	gatewaydefaults "github.com/solo-io/gloo/projects/gateway/pkg/defaults"
@@ -45,6 +43,7 @@ var _ = Describe("Gateway", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 		defaults.HttpPort = services.NextBindPort()
 		defaults.HttpsPort = services.NextBindPort()
+		defaults.TcpPort = services.NextBindPort()
 	})
 
 	AfterEach(func() {
@@ -505,8 +504,10 @@ var _ = Describe("Gateway", func() {
 				Context("ssl", func() {
 
 					TestUpstreamSslReachable := func() {
-						cert := gloohelpers.Certificate()
-						v1helpers.TestUpstreamReachable(defaults.HttpsPort, tu, &cert)
+						//cert := gloohelpers.Certificate()
+						//v1helpers.TestUpstreamReachable(defaults.HttpsPort, tu, &cert)
+
+						v1helpers.TestUpstreamReachable(defaults.HttpPort, tu, nil)
 					}
 
 					It("should work with ssl", func() {
@@ -553,46 +554,52 @@ var _ = Describe("Gateway", func() {
 
 		Context("tcp gateway", func() {
 
+			var (
+				envoyInstance *services.EnvoyInstance
+				tu            *v1helpers.TestUpstream
+			)
+
+			BeforeEach(func() {
+				// Use tcp gateway instead of default
+				defaultGateway := gatewaydefaults.DefaultTcpGateway(writeNamespace)
+				defaultSslGateway := gatewaydefaults.DefaultTcpSslGateway(writeNamespace)
+
+				_, err := testClients.GatewayClient.Write(defaultGateway, clients.WriteOpts{})
+				Expect(err).NotTo(HaveOccurred(), "Should be able to write default gateways")
+				_, err = testClients.GatewayClient.Write(defaultSslGateway, clients.WriteOpts{})
+				Expect(err).NotTo(HaveOccurred(), "Should be able to write default ssl gateways")
+
+				// wait for the two gateways to be created.
+				Eventually(func() (gatewayv1.GatewayList, error) {
+					return testClients.GatewayClient.List(writeNamespace, clients.ListOpts{})
+				}, "10s", "0.1s").Should(HaveLen(2), "Gateways should be present")
+
+				envoyInstance, err = envoyFactory.NewEnvoyInstance()
+				Expect(err).NotTo(HaveOccurred())
+
+				tu = v1helpers.NewTestHttpUpstream(ctx, envoyInstance.LocalAddr())
+
+				_, err = testClients.UpstreamClient.Write(tu.Upstream, clients.WriteOpts{})
+				Expect(err).NotTo(HaveOccurred())
+				err = envoyInstance.RunWithRoleAndRestXds(writeNamespace+"~"+gatewaydefaults.GatewayProxyName, testClients.GlooPort, testClients.RestXdsPort)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				if envoyInstance != nil {
+					_ = envoyInstance.Clean()
+				}
+			})
+
 			Context("ssl", func() {
 
-				var (
-					envoyInstance *services.EnvoyInstance
-					tu            *v1helpers.TestUpstream
-				)
+				TestUpstreamSslReachableTcp := func() {
+					cert := gloohelpers.Certificate()
+					// TcpPort or https?
+					v1helpers.TestUpstreamReachable(defaults.TcpPort, tu, &cert)
+				}
 
-				BeforeEach(func() {
-					defaultGateway := gatewaydefaults.DefaultTcpGateway(writeNamespace)
-					defaultSslGateway := gatewaydefaults.DefaultTcpSslGateway(writeNamespace)
-
-					_, err := testClients.GatewayClient.Write(defaultGateway, clients.WriteOpts{})
-					Expect(err).NotTo(HaveOccurred(), "Should be able to write default gateways")
-					_, err = testClients.GatewayClient.Write(defaultSslGateway, clients.WriteOpts{})
-					Expect(err).NotTo(HaveOccurred(), "Should be able to write default ssl gateways")
-
-					// wait for the two gateways to be created.
-					Eventually(func() (gatewayv1.GatewayList, error) {
-						return testClients.GatewayClient.List(writeNamespace, clients.ListOpts{})
-					}, "10s", "0.1s").Should(HaveLen(2), "Gateways should be present")
-
-					envoyInstance, err = envoyFactory.NewEnvoyInstance()
-					Expect(err).NotTo(HaveOccurred())
-
-					tu = v1helpers.NewTestHttpUpstream(ctx, envoyInstance.LocalAddr())
-
-					_, err = testClients.UpstreamClient.Write(tu.Upstream, clients.WriteOpts{})
-					Expect(err).NotTo(HaveOccurred())
-					err = envoyInstance.RunWithRoleAndRestXds(writeNamespace+"~"+gatewaydefaults.GatewayProxyName, testClients.GlooPort, testClients.RestXdsPort)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				AfterEach(func() {
-					if envoyInstance != nil {
-						_ = envoyInstance.Clean()
-					}
-				})
-
-				It("should work with ssl", func() {
-
+				FIt("should work with ssl", func() {
 					secret := &gloov1.Secret{
 						Metadata: &core.Metadata{
 							Name:      "secret",
@@ -608,12 +615,23 @@ var _ = Describe("Gateway", func() {
 					createdSecret, err := testClients.SecretClient.Write(secret, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 					Expect(err).NotTo(HaveOccurred())
 
+					// TODO: Do you need the TcpHost_TcpAction_ForwardSniClusterName set on TCPHost?
+					//	Destination: &gloov1.TcpHost_TcpAction{
+					//		Destination: &gloov1.TcpHost_TcpAction_ForwardSniClusterName{
+					//			ForwardSniClusterName: &empty.Empty{},
+					//		},
+					//	},
+
 					up := tu.Upstream
 					host := &gloov1.TcpHost{
 						Name: "one",
 						Destination: &gloov1.TcpHost_TcpAction{
-							Destination: &gloov1.TcpHost_TcpAction_ForwardSniClusterName{
-								ForwardSniClusterName: &empty.Empty{},
+							Destination: &gloov1.TcpHost_TcpAction_Single{
+								Single: &gloov1.Destination{
+									DestinationType: &gloov1.Destination_Upstream{
+										Upstream: tu.Upstream.Metadata.Ref(),
+									},
+								},
 							},
 						},
 						SslConfig: &gloov1.SslConfig{
@@ -625,6 +643,7 @@ var _ = Describe("Gateway", func() {
 									Namespace: createdSecret.Metadata.Namespace,
 								},
 							},
+							AlpnProtocols: []string{"http/1.1"},
 						},
 					}
 
@@ -647,6 +666,8 @@ var _ = Describe("Gateway", func() {
 					Eventually(func() string {
 						return envoyInstance.EnvoyConfig()
 					}, "10s", "0.1s").Should(MatchRegexp("tls_inspector"))
+
+					TestUpstreamSslReachableTcp()
 				})
 			})
 
