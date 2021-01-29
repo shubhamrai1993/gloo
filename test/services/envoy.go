@@ -331,6 +331,27 @@ func (ef *EnvoyFactory) Clean() error {
 	return nil
 }
 
+func (ei *EnvoyInstance) EnvoyConfig() string {
+	adminUrl := fmt.Sprintf("http://%s:%d/config_dump",
+		ei.LocalAddr(),
+		ei.AdminPort)
+	envoyConfig := ""
+	Eventually(func() error {
+		r, err := http.Get(adminUrl)
+		if err != nil {
+			return err
+		}
+		p := new(bytes.Buffer)
+		if _, err := io.Copy(p, r.Body); err != nil {
+			return err
+		}
+		defer r.Body.Close()
+		envoyConfig = p.String()
+		return nil
+	}, "10s", ".1s").Should(BeNil())
+	return envoyConfig
+}
+
 type EnvoyInstance struct {
 	AccessLogAddr string
 	AccessLogPort uint32

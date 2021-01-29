@@ -34,22 +34,22 @@ var _ = Describe("Plugin", func() {
 
 			filters := []*envoy_config_listener_v3.Filter{{}}
 
-			outl := &envoy_config_listener_v3.Listener{
+			out := &envoy_config_listener_v3.Listener{
 				FilterChains: []*envoy_config_listener_v3.FilterChain{{
 					Filters: filters,
 				}},
 			}
 
 			p := NewPlugin()
-			err := p.ProcessListener(params, in, outl)
+			err := p.ProcessListener(params, in, out)
 			Expect(err).NotTo(HaveOccurred())
 
 			configEnvoy := &envoy_tls_inspector.TlsInspector{}
 			config, err := utils.MessageToAny(configEnvoy)
 
-			Expect(outl.ListenerFilters).To(HaveLen(1))
-			Expect(outl.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
-			Expect(outl.ListenerFilters[0].GetTypedConfig()).To(Equal(config))
+			Expect(out.ListenerFilters).To(HaveLen(1))
+			Expect(out.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
+			Expect(out.ListenerFilters[0].GetTypedConfig()).To(Equal(config))
 
 		})
 
@@ -64,17 +64,17 @@ var _ = Describe("Plugin", func() {
 
 			filters := []*envoy_config_listener_v3.Filter{{}}
 
-			outl := &envoy_config_listener_v3.Listener{
+			out := &envoy_config_listener_v3.Listener{
 				FilterChains: []*envoy_config_listener_v3.FilterChain{{
 					Filters: filters,
 				}},
 			}
 
 			p := NewPlugin()
-			err := p.ProcessListener(params, in, outl)
+			err := p.ProcessListener(params, in, out)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(outl.ListenerFilters).To(HaveLen(0))
+			Expect(out.ListenerFilters).To(HaveLen(0))
 		})
 	})
 
@@ -99,22 +99,22 @@ var _ = Describe("Plugin", func() {
 
 			filters := []*envoy_config_listener_v3.Filter{{}}
 
-			outl := &envoy_config_listener_v3.Listener{
+			out := &envoy_config_listener_v3.Listener{
 				FilterChains: []*envoy_config_listener_v3.FilterChain{{
 					Filters: filters,
 				}},
 			}
 
 			p := NewPlugin()
-			err := p.ProcessListener(params, in, outl)
+			err := p.ProcessListener(params, in, out)
 			Expect(err).NotTo(HaveOccurred())
 
 			configEnvoy := &envoy_tls_inspector.TlsInspector{}
 			config, err := utils.MessageToAny(configEnvoy)
 
-			Expect(outl.ListenerFilters).To(HaveLen(1))
-			Expect(outl.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
-			Expect(outl.ListenerFilters[0].GetTypedConfig()).To(Equal(config))
+			Expect(out.ListenerFilters).To(HaveLen(1))
+			Expect(out.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
+			Expect(out.ListenerFilters[0].GetTypedConfig()).To(Equal(config))
 		})
 
 		It("Tcp Host Ssl Config is set, tls inspector is added", func() {
@@ -131,22 +131,22 @@ var _ = Describe("Plugin", func() {
 
 			filters := []*envoy_config_listener_v3.Filter{{}}
 
-			outl := &envoy_config_listener_v3.Listener{
+			out := &envoy_config_listener_v3.Listener{
 				FilterChains: []*envoy_config_listener_v3.FilterChain{{
 					Filters: filters,
 				}},
 			}
 
 			p := NewPlugin()
-			err := p.ProcessListener(params, in, outl)
+			err := p.ProcessListener(params, in, out)
 			Expect(err).NotTo(HaveOccurred())
 
 			configEnvoy := &envoy_tls_inspector.TlsInspector{}
 			config, err := utils.MessageToAny(configEnvoy)
 
-			Expect(outl.ListenerFilters).To(HaveLen(1))
-			Expect(outl.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
-			Expect(outl.ListenerFilters[0].GetTypedConfig()).To(Equal(config))
+			Expect(out.ListenerFilters).To(HaveLen(1))
+			Expect(out.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
+			Expect(out.ListenerFilters[0].GetTypedConfig()).To(Equal(config))
 		})
 
 		It("tls inspector is ignored", func() {
@@ -159,17 +159,17 @@ var _ = Describe("Plugin", func() {
 
 			filters := []*envoy_config_listener_v3.Filter{{}}
 
-			outl := &envoy_config_listener_v3.Listener{
+			out := &envoy_config_listener_v3.Listener{
 				FilterChains: []*envoy_config_listener_v3.FilterChain{{
 					Filters: filters,
 				}},
 			}
 
 			p := NewPlugin()
-			err := p.ProcessListener(params, in, outl)
+			err := p.ProcessListener(params, in, out)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(outl.ListenerFilters).To(HaveLen(0))
+			Expect(out.ListenerFilters).To(HaveLen(0))
 		})
 
 		It("will prepend the TlsInspector when NO ServerName match present", func() {
@@ -193,12 +193,15 @@ var _ = Describe("Plugin", func() {
 				},
 			}
 
+			configEnvoy := &envoy_tls_inspector.TlsInspector{}
+			config, err := utils.MessageToAny(configEnvoy)
+
 			p := NewPlugin()
-			err := p.ProcessListener(plugins.Params{Snapshot: snap}, listener, out)
+			err = p.ProcessListener(plugins.Params{Snapshot: snap}, listener, out)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(out.ListenerFilters).To(HaveLen(1))
 			Expect(out.ListenerFilters[0].GetName()).To(Equal(wellknown.TlsInspector))
-			Expect(out.ListenerFilters[0].GetTypedConfig()).To(BeNil())
+			Expect(out.ListenerFilters[0].GetTypedConfig()).To(Equal(config))
 		})
 	})
 })

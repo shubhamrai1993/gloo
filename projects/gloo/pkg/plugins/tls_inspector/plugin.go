@@ -41,38 +41,19 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 		},
 	}
 
+	// automatically add tls inspector when ssl is enabled
+	if in.GetSslConfigurations() != nil {
+		out.ListenerFilters = append(out.ListenerFilters, tlsInspector)
+	}
+
 	switch in.GetListenerType().(type) {
-	case *v1.Listener_HttpListener:
-		// automatically add tls inspector when ssl is enabled
-		if in.GetSslConfigurations() != nil {
-			out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{tlsInspector}, out.ListenerFilters...)
-		}
 	case *v1.Listener_TcpListener:
-		tcpListener := in.GetTcpListener()
-		var hostHasConfig, sniCluster, sniMatch bool
-		for _, host := range tcpListener.GetTcpHosts() {
-			if host.GetSslConfig() != nil {
-				hostHasConfig = true
-			}
-			if len(host.GetSslConfig().GetSniDomains()) > 0 {
-				sniMatch = true
-			}
-			if host.GetDestination().GetForwardSniClusterName() != nil {
-				sniCluster = true
+		for _, host := range in.GetTcpListener().GetTcpHosts() {
+			if host.GetSslConfig() != nil || host.GetDestination().GetForwardSniClusterName() != nil {
+				out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{tlsInspector}, out.ListenerFilters...)
+				break
 			}
 		}
-
-		// If there is a forward SNI cluster, and no SNI matches, prepend the TLS inspector manually.
-		if sniCluster && !sniMatch {
-			out.ListenerFilters = append(
-				[]*envoy_config_listener_v3.ListenerFilter{{Name: wellknown.TlsInspector}},
-				out.ListenerFilters...,
-			)
-		} else if hostHasConfig || in.GetSslConfigurations() != nil {
-			// if sslConfig on listener add TLS inspector
-			out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{tlsInspector}, out.ListenerFilters...)
-		}
-
 	}
 
 	return nil
