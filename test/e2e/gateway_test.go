@@ -542,8 +542,10 @@ var _ = FDescribe("Gateway", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						TestUpstreamSslReachable()
-						config := envoyInstance.EnvoyConfig()
-						Expect(config).To(MatchRegexp("tls_inspector"))
+
+						Eventually(func() string {
+							return envoyInstance.EnvoyConfig()
+						}, "10s", "0.1s").Should(MatchRegexp("tls_inspector"))
 					})
 				})
 			})
@@ -642,8 +644,9 @@ var _ = FDescribe("Gateway", func() {
 					}
 
 					// Check tls inspector is correctly configured
-					config := envoyInstance.EnvoyConfig()
-					Expect(config).To(MatchRegexp("tls_inspector"))
+					Eventually(func() string {
+						return envoyInstance.EnvoyConfig()
+					}, "10s", "0.1s").Should(MatchRegexp("tls_inspector"))
 				})
 			})
 
