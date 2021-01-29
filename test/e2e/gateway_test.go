@@ -504,10 +504,8 @@ var _ = Describe("Gateway", func() {
 				Context("ssl", func() {
 
 					TestUpstreamSslReachable := func() {
-						//cert := gloohelpers.Certificate()
-						//v1helpers.TestUpstreamReachable(defaults.HttpsPort, tu, &cert)
-
-						v1helpers.TestUpstreamReachable(defaults.HttpPort, tu, nil)
+						cert := gloohelpers.Certificate()
+						v1helpers.TestUpstreamReachable(defaults.HttpsPort, tu, &cert)
 					}
 
 					It("should work with ssl", func() {
