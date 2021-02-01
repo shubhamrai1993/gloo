@@ -593,11 +593,10 @@ var _ = Describe("Gateway", func() {
 
 				TestUpstreamSslReachableTcp := func() {
 					cert := gloohelpers.Certificate()
-					// TcpPort or https?
-					v1helpers.TestUpstreamReachable(defaults.TcpPort, tu, &cert)
+					v1helpers.TestUpstreamReachable(defaults.HttpsPort, tu, &cert)
 				}
 
-				FIt("should work with ssl", func() {
+				It("should work with ssl", func() {
 					secret := &gloov1.Secret{
 						Metadata: &core.Metadata{
 							Name:      "secret",
@@ -613,14 +612,6 @@ var _ = Describe("Gateway", func() {
 					createdSecret, err := testClients.SecretClient.Write(secret, clients.WriteOpts{Ctx: ctx, OverwriteExisting: true})
 					Expect(err).NotTo(HaveOccurred())
 
-					// TODO: Do you need the TcpHost_TcpAction_ForwardSniClusterName set on TCPHost?
-					//	Destination: &gloov1.TcpHost_TcpAction{
-					//		Destination: &gloov1.TcpHost_TcpAction_ForwardSniClusterName{
-					//			ForwardSniClusterName: &empty.Empty{},
-					//		},
-					//	},
-
-					up := tu.Upstream
 					host := &gloov1.TcpHost{
 						Name: "one",
 						Destination: &gloov1.TcpHost_TcpAction{
@@ -633,8 +624,6 @@ var _ = Describe("Gateway", func() {
 							},
 						},
 						SslConfig: &gloov1.SslConfig{
-							// Use the translated cluster name as the SNI domain so envoy uses that in the cluster field
-							SniDomains: []string{translator.UpstreamToClusterName(up.Metadata.Ref())},
 							SslSecrets: &gloov1.SslConfig_SecretRef{
 								SecretRef: &core.ResourceRef{
 									Name:      createdSecret.Metadata.Name,
