@@ -335,11 +335,11 @@ func (ei *EnvoyInstance) EnvoyConfig() (*http.Response, error) {
 	adminUrl := fmt.Sprintf("http://%s:%d/config_dump",
 		ei.LocalAddr(),
 		ei.AdminPort)
-		r, err := http.Get(adminUrl)
-		if err != nil {
-			return nil, err
-		}
-		return r, nil
+	r, err := http.Get(adminUrl)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 type EnvoyInstance struct {
