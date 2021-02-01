@@ -50,7 +50,7 @@ func (p *plugin) ProcessListener(params plugins.Params, in *v1.Listener, out *en
 		case *v1.Listener_TcpListener:
 			for _, host := range in.GetTcpListener().GetTcpHosts() {
 				if host.GetSslConfig() != nil || host.GetDestination().GetForwardSniClusterName() != nil {
-					out.ListenerFilters = append([]*envoy_config_listener_v3.ListenerFilter{tlsInspector}, out.ListenerFilters...)
+					out.ListenerFilters = append(out.ListenerFilters, tlsInspector)
 					break
 				}
 			}
