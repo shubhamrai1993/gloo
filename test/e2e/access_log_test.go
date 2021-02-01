@@ -2,12 +2,13 @@ package e2e_test
 
 import (
 	"context"
-	envoy_data_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/data/accesslog/v3"
 	"io/ioutil"
 	"os"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	envoy_data_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/data/accesslog/v3"
 
 	envoyals "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v3"
 	"github.com/fgrosse/zaptest"
