@@ -1,8 +1,10 @@
 package e2e_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -30,7 +32,7 @@ import (
 	"github.com/solo-io/solo-kit/pkg/api/v1/resources/core"
 )
 
-var _ = Describe("Gateway", func() {
+var _ = FDescribe("Gateway", func() {
 
 	var (
 		ctx            context.Context
@@ -542,8 +544,19 @@ var _ = Describe("Gateway", func() {
 
 						TestUpstreamSslReachable()
 
-						Eventually(func() string {
-							return envoyInstance.EnvoyConfig()
+						Eventually(func() (string, error) {
+							envoyConfig := ""
+							resp, err := envoyInstance.EnvoyConfig()
+							if err != nil {
+								return "", err
+							}
+							p := new(bytes.Buffer)
+							if _, err := io.Copy(p, resp.Body); err != nil {
+								return "", err
+							}
+							defer resp.Body.Close()
+							envoyConfig = p.String()
+							return envoyConfig, nil
 						}, "10s", "0.1s").Should(MatchRegexp("tls_inspector"))
 					})
 				})
@@ -650,8 +663,19 @@ var _ = Describe("Gateway", func() {
 					}
 
 					// Check tls inspector is correctly configured
-					Eventually(func() string {
-						return envoyInstance.EnvoyConfig()
+					Eventually(func() (string, error) {
+						envoyConfig := ""
+						resp, err := envoyInstance.EnvoyConfig()
+						if err != nil {
+							return "", err
+						}
+						p := new(bytes.Buffer)
+						if _, err := io.Copy(p, resp.Body); err != nil {
+							return "", err
+						}
+						defer resp.Body.Close()
+						envoyConfig = p.String()
+						return envoyConfig, nil
 					}, "10s", "0.1s").Should(MatchRegexp("tls_inspector"))
 
 					TestUpstreamSslReachableTcp()
