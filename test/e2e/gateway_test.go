@@ -511,6 +511,21 @@ var _ = Describe("Gateway", func() {
 					}
 
 					It("should work with ssl", func() {
+						// Check tls inspector has not been added yet
+						Eventually(func() (string, error) {
+							envoyConfig := ""
+							resp, err := envoyInstance.EnvoyConfig()
+							if err != nil {
+								return "", err
+							}
+							p := new(bytes.Buffer)
+							if _, err := io.Copy(p, resp.Body); err != nil {
+								return "", err
+							}
+							defer resp.Body.Close()
+							envoyConfig = p.String()
+							return envoyConfig, nil
+						}, "10s", "0.1s").Should(Not(MatchRegexp("type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector")))
 
 						secret := &gloov1.Secret{
 							Metadata: &core.Metadata{
@@ -557,7 +572,7 @@ var _ = Describe("Gateway", func() {
 							defer resp.Body.Close()
 							envoyConfig = p.String()
 							return envoyConfig, nil
-						}, "10s", "0.1s").Should(MatchRegexp("tls_inspector"))
+						}, "10s", "0.1s").Should(MatchRegexp("type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"))
 					})
 				})
 			})
@@ -610,6 +625,22 @@ var _ = Describe("Gateway", func() {
 				}
 
 				It("should work with ssl", func() {
+					// Check tls inspector has not been added yet
+					Eventually(func() (string, error) {
+						envoyConfig := ""
+						resp, err := envoyInstance.EnvoyConfig()
+						if err != nil {
+							return "", err
+						}
+						p := new(bytes.Buffer)
+						if _, err := io.Copy(p, resp.Body); err != nil {
+							return "", err
+						}
+						defer resp.Body.Close()
+						envoyConfig = p.String()
+						return envoyConfig, nil
+					}, "10s", "0.1s").Should(Not(MatchRegexp("type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector")))
+
 					secret := &gloov1.Secret{
 						Metadata: &core.Metadata{
 							Name:      "secret",
@@ -676,7 +707,7 @@ var _ = Describe("Gateway", func() {
 						defer resp.Body.Close()
 						envoyConfig = p.String()
 						return envoyConfig, nil
-					}, "10s", "0.1s").Should(MatchRegexp("tls_inspector"))
+					}, "10s", "0.1s").Should(MatchRegexp("type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"))
 
 					TestUpstreamSslReachableTcp()
 				})
