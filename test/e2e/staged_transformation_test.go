@@ -132,7 +132,7 @@ var _ = Describe("Staged Transformation", func() {
 		TestUpstreamReachable := func() {
 			v1helpers.TestUpstreamReachable(envoyPort, tu, nil)
 		}
-		FIt("should transform response", func() {
+		It("should transform response", func() {
 			setProxy(&transformation.TransformationStages{
 				Early: &transformation.RequestResponseTransformations{
 					ResponseTransforms: []*transformation.ResponseMatch{{
